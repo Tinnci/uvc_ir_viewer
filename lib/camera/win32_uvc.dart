@@ -48,9 +48,12 @@ final class IBaseFilter extends win32.IUnknown {
   @override
   int release() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(2).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 2 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
@@ -64,9 +67,12 @@ final class ICreateDevEnum extends win32.IUnknown {
   @override
   int release() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(2).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 2 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
@@ -74,12 +80,16 @@ final class ICreateDevEnum extends win32.IUnknown {
   int createClassEnumerator(Pointer<win32.GUID> clsid,
       Pointer<Pointer<win32.COMObject>> ppEnumMoniker, int flags) {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(3).value);
-    final func = funcPtr
-        .cast<
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 3 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
             NativeFunction<
-                Int32 Function(Pointer<win32.COMObject>, Pointer<win32.GUID>,
-                    Pointer<Pointer<win32.COMObject>>, Uint32)>>()
+                Int32 Function(
+                    Pointer<win32.COMObject>,
+                    Pointer<win32.GUID>,
+                    Pointer<Pointer<win32.COMObject>>,
+                    Uint32)>>.fromAddress(funcPtr)
         .asFunction<
             int Function(Pointer<win32.COMObject>, Pointer<win32.GUID>,
                 Pointer<Pointer<win32.COMObject>>, int)>();
@@ -95,9 +105,12 @@ final class IMoniker extends win32.IUnknown {
   @override
   int release() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(2).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 2 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
@@ -108,16 +121,17 @@ final class IMoniker extends win32.IUnknown {
       Pointer<win32.GUID> riid,
       Pointer<Pointer<win32.COMObject>> ppvObj) {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(5).value);
-    final func = funcPtr
-        .cast<
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 5 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
             NativeFunction<
                 Int32 Function(
                     Pointer<win32.COMObject>,
                     Pointer<win32.COMObject>,
                     Pointer<win32.COMObject>,
                     Pointer<win32.GUID>,
-                    Pointer<Pointer<win32.COMObject>>)>>()
+                    Pointer<Pointer<win32.COMObject>>)>>.fromAddress(funcPtr)
         .asFunction<
             int Function(
                 Pointer<win32.COMObject>,
@@ -137,9 +151,12 @@ final class IPropertyBag extends win32.IUnknown {
   @override
   int release() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(2).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 2 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
@@ -147,12 +164,16 @@ final class IPropertyBag extends win32.IUnknown {
   int read(Pointer<Utf16> pszPropName, Pointer<win32.VARIANT> pVar,
       Pointer<win32.COMObject> pErrorLog) {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(3).value);
-    final func = funcPtr
-        .cast<
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 3 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
             NativeFunction<
-                Int32 Function(Pointer<win32.COMObject>, Pointer<Utf16>,
-                    Pointer<win32.VARIANT>, Pointer<win32.COMObject>)>>()
+                Int32 Function(
+                    Pointer<win32.COMObject>,
+                    Pointer<Utf16>,
+                    Pointer<win32.VARIANT>,
+                    Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<
             int Function(Pointer<win32.COMObject>, Pointer<Utf16>,
                 Pointer<win32.VARIANT>, Pointer<win32.COMObject>)>();
@@ -168,21 +189,27 @@ final class IGraphBuilder extends win32.IUnknown {
   @override
   int release() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(2).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 2 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
 
   int addFilter(Pointer<win32.COMObject> pFilter, Pointer<Utf16> pName) {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(3).value);
-    final func = funcPtr
-        .cast<
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 3 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
             NativeFunction<
-                Int32 Function(Pointer<win32.COMObject>,
-                    Pointer<win32.COMObject>, Pointer<Utf16>)>>()
+                Int32 Function(
+                    Pointer<win32.COMObject>,
+                    Pointer<win32.COMObject>,
+                    Pointer<Utf16>)>>.fromAddress(funcPtr)
         .asFunction<
             int Function(Pointer<win32.COMObject>, Pointer<win32.COMObject>,
                 Pointer<Utf16>)>();
@@ -198,27 +225,36 @@ final class IMediaControl extends win32.IUnknown {
   @override
   int release() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(2).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 2 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
 
   int run() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(3).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 3 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
 
   int stop() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(4).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 4 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
@@ -232,9 +268,12 @@ final class IEnumMoniker extends win32.IUnknown {
   @override
   int release() {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(2).value);
-    final func = funcPtr
-        .cast<NativeFunction<Int32 Function(Pointer<win32.COMObject>)>>()
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 2 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
+            NativeFunction<
+                Int32 Function(Pointer<win32.COMObject>)>>.fromAddress(funcPtr)
         .asFunction<int Function(Pointer<win32.COMObject>)>();
     return func(ptr);
   }
@@ -242,12 +281,16 @@ final class IEnumMoniker extends win32.IUnknown {
   int next(int celt, Pointer<Pointer<win32.COMObject>> rgelt,
       Pointer<Uint32> pceltFetched) {
     final vtable = ptr.ref.vtable;
-    final funcPtr = Pointer.fromAddress(vtable.elementAt(3).value);
-    final func = funcPtr
-        .cast<
+    final funcPtr =
+        Pointer<IntPtr>.fromAddress(vtable.address + 3 * sizeOf<IntPtr>())
+            .value;
+    final func = Pointer<
             NativeFunction<
-                Int32 Function(Pointer<win32.COMObject>, Uint32,
-                    Pointer<Pointer<win32.COMObject>>, Pointer<Uint32>)>>()
+                Int32 Function(
+                    Pointer<win32.COMObject>,
+                    Uint32,
+                    Pointer<Pointer<win32.COMObject>>,
+                    Pointer<Uint32>)>>.fromAddress(funcPtr)
         .asFunction<
             int Function(Pointer<win32.COMObject>, int,
                 Pointer<Pointer<win32.COMObject>>, Pointer<Uint32>)>();

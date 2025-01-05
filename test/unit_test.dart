@@ -4,35 +4,48 @@
 // writing unit tests, visit
 // https://flutter.dev/to/unit-testing
 
-@TestOn('windows')
+// @TestOn('windows') library unit_test;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uvc_ir_viewer/camera/uvc_camera.dart';
+import 'package:logging/logging.dart';
 
 void main() {
   group('UVCCamera Tests', () {
     late UVCCamera camera;
+    late Logger logger;
 
     setUp(() {
-      print('Setting up test...');
+      logger = Logger('UnitTest');
+      Logger.root.level = Level.ALL;
+      Logger.root.onRecord.listen((record) {
+        // 在测试环境中，我们使用 printOnFailure 来记录日志
+        // 这样只有在测试失败时才会显示日志
+        addTearDown(() {
+          printOnFailure(
+              '${record.level.name}: ${record.time}: ${record.message}');
+          if (record.error != null) {
+            printOnFailure('Error: ${record.error}');
+          }
+          if (record.stackTrace != null) {
+            printOnFailure('Stack trace:\n${record.stackTrace}');
+          }
+        });
+      });
+
       try {
         camera = UVCCamera();
-        print('Camera instance created');
       } catch (e, stackTrace) {
-        print('Error in setUp: $e');
-        print('Stack trace: $stackTrace');
+        logger.severe('Error in setUp', e, stackTrace);
         rethrow;
       }
     });
 
     tearDown(() {
-      print('Tearing down test...');
       try {
         camera.dispose();
-        print('Test cleanup completed');
       } catch (e) {
-        print('Error in tearDown: $e');
+        logger.warning('Error in tearDown: $e');
       }
     });
 
@@ -41,9 +54,9 @@ void main() {
       expect(camera.isPreviewStarted, false);
     });
 
-    test('VENDOR_ID and PRODUCT_ID should be correct', () {
-      expect(UVCCamera.VENDOR_ID, 0x2BDF);
-      expect(UVCCamera.PRODUCT_ID, 0x0101);
+    test('vendorId and productId should be correct', () {
+      expect(UVCCamera.vendorId, 0x2BDF);
+      expect(UVCCamera.productId, 0x0101);
     });
 
     test('dispose() should reset initialized state', () {
