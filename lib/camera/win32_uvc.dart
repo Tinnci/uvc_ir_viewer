@@ -256,6 +256,13 @@ final class IEnumMoniker extends win32.IUnknown {
 }
 
 // Helper functions
+void setGUID(Pointer<win32.GUID> guid, String guidString) {
+  final hr = win32.IIDFromString(guidString.toNativeUtf16(), guid);
+  if (win32.FAILED(hr)) {
+    throw Exception('Failed to initialize GUID: $guidString');
+  }
+}
+
 void initializeGUIDs() {
   // Initialize DirectShow GUIDs
   setGUID(
@@ -269,25 +276,4 @@ void initializeGUIDs() {
   setGUID(iidMediaControl, '{56a868b1-0ad4-11ce-b03a-0020af0ba770}');
   setGUID(iidGraphBuilder, '{56a868a9-0ad4-11ce-b03a-0020af0ba770}');
   setGUID(clsidFilterGraph, '{e436ebb3-524f-11ce-9f53-0020af0ba770}');
-}
-
-void setGUID(Pointer<win32.GUID> guid, String guidString) {
-  final cleanGuid = guidString.replaceAll('{', '').replaceAll('}', '');
-  final parts = cleanGuid.split('-');
-  if (parts.length != 5) throw Exception('Invalid GUID format');
-
-  guid.ref.Data1 = int.parse(parts[0], radix: 16);
-  guid.ref.Data2 = int.parse(parts[1], radix: 16);
-  guid.ref.Data3 = int.parse(parts[2], radix: 16);
-
-  final bytes = [
-    ...parts[3].split('').map((e) => int.parse(e, radix: 16)),
-    ...parts[4].split('').map((e) => int.parse(e, radix: 16)),
-  ];
-
-  // 使用指针直接写入Data4数组
-  final data4Ptr = guid.cast<Uint8>() + 8; // Data4 starts at offset 8
-  for (var i = 0; i < 8 && i < bytes.length; i++) {
-    data4Ptr[i] = bytes[i];
-  }
 }
