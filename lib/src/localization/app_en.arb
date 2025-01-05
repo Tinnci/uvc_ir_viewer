@@ -1,0 +1,6 @@
+{
+  "appTitle": "uvc_ir_viewer",
+  "@appTitle": {
+    "description": "The title of the application"
+  }
+}

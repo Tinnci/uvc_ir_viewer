@@ -1,0 +1,33 @@
+# Flutter/Dart specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# Windows specific
+*.dll
+*.exe
+*.pdb
+windows/flutter/
+.vs/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Generated files
+*.g.dart
+*.freezed.dart
+
+# Logs
+*.log
