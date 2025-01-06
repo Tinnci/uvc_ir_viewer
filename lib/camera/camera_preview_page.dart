@@ -342,26 +342,98 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
               ),
               const SizedBox(height: 24),
               Expanded(
-                child: ListView.builder(
-                  itemCount: _devices!.length,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemBuilder: (context, index) {
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      child: ListTile(
-                        leading: const Icon(Icons.camera),
-                        title: Text(_devices![index]),
-                        onTap: () => _startPreview(index),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                child: _devices!.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.camera_alt_outlined,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              l10n.noDevicesFound,
+                              style: Theme.of(context).textTheme.titleMedium,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _initializeCamera,
+                              icon: const Icon(Icons.refresh),
+                              label: Text(l10n.refresh),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size(120, 48),
+                              ),
+                            ),
+                          ],
                         ),
+                      )
+                    : ListView.builder(
+                        itemCount: _devices!.length,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemBuilder: (context, index) {
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            child: ListTile(
+                              leading: const Icon(Icons.camera),
+                              title: Text(_devices![index]),
+                              subtitle: FutureBuilder<Map<String, dynamic>>(
+                                future: _camera.getDeviceStatus(index),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    final status = snapshot.data!;
+                                    final isConnected =
+                                        status['isConnected'] ?? false;
+                                    final isAvailable =
+                                        status['isAvailable'] ?? false;
+                                    final error = status['error'];
+
+                                    if (error != null) {
+                                      return Text(
+                                        error.toString(),
+                                        style:
+                                            const TextStyle(color: Colors.red),
+                                      );
+                                    }
+
+                                    return Row(
+                                      children: [
+                                        Icon(
+                                          isConnected
+                                              ? Icons.check_circle
+                                              : Icons.error,
+                                          size: 16,
+                                          color: isConnected
+                                              ? Colors.green
+                                              : Colors.red,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          isConnected
+                                              ? (isAvailable
+                                                  ? l10n.deviceNotAvailable
+                                                  : l10n.deviceDisconnected)
+                                              : l10n.deviceDisconnected,
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                  return Text(l10n.checkingDeviceStatus);
+                                },
+                              ),
+                              onTap: () => _startPreview(index),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
             ],
           ),
@@ -375,14 +447,55 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
       child: Column(
         children: [
           Expanded(
-            child: Container(
-              color: Colors.black,
-              child: Center(
-                child: Text(
-                  l10n.previewArea,
-                  style: const TextStyle(color: Colors.white),
+            child: Stack(
+              children: [
+                Container(
+                  color: Colors.black,
+                  child: Center(
+                    child: Text(
+                      l10n.previewArea,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
                 ),
-              ),
+                if (_selectedDeviceStatus != null &&
+                    (!_selectedDeviceStatus!['isConnected'] ||
+                        !_selectedDeviceStatus!['isAvailable']))
+                  Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            size: 64,
+                            color: Colors.orange,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            _selectedDeviceStatus!['error'] ?? '设备已断开连接',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            onPressed: () =>
+                                _startPreview(_selectedDeviceIndex!),
+                            icon: const Icon(Icons.refresh),
+                            label: Text(l10n.retry),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(120, 48),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           Padding(
@@ -418,58 +531,136 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
 
   Widget _buildSettingsPanel(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.cameraSettings,
-              style: Theme.of(context).textTheme.titleLarge,
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.cameraSettings,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => setState(() => _isSettingsOpen = false),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_selectedDeviceStatus != null) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.deviceStatus,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          _selectedDeviceStatus!['isConnected']
+                              ? Icons.check_circle
+                              : Icons.error,
+                          size: 16,
+                          color: _selectedDeviceStatus!['isConnected']
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _selectedDeviceStatus!['isConnected']
+                              ? l10n.deviceConnected
+                              : l10n.deviceDisconnected,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          _selectedDeviceStatus!['isAvailable']
+                              ? Icons.check_circle
+                              : Icons.error,
+                          size: 16,
+                          color: _selectedDeviceStatus!['isAvailable']
+                              ? Colors.green
+                              : Colors.orange,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _selectedDeviceStatus!['isAvailable']
+                              ? l10n.deviceAvailable
+                              : l10n.deviceNotAvailable,
+                        ),
+                      ],
+                    ),
+                    if (_selectedDeviceStatus!['error'] != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.errorMessage,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                      Text(
+                        _selectedDeviceStatus!['error']!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            if (_selectedDeviceStatus != null) ...[
-              Text(
-                '设备状态',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                  '连接状态: ${_selectedDeviceStatus!['isConnected'] ? '已连接' : '未连接'}'),
-              Text(
-                  '可用状态: ${_selectedDeviceStatus!['isAvailable'] ? '可用' : '不可用'}'),
-              if (_selectedDeviceStatus!['error'] != null)
-                Text('错误信息: ${_selectedDeviceStatus!['error']}'),
-              const SizedBox(height: 16),
-            ],
-            Text(
-              l10n.brightness,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            Slider(
-              value: _brightness,
-              onChanged: (value) {
-                setState(() => _brightness = value);
-                _camera.setBrightness(value);
-              },
-            ),
-            Text(
-              l10n.contrast,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            Slider(
-              value: _contrast,
-              onChanged: (value) {
-                setState(() => _contrast = value);
-                _camera.setContrast(value);
-              },
-            ),
           ],
-        ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.brightness,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Slider(
+                    value: _brightness,
+                    onChanged: _selectedDeviceStatus != null &&
+                            _selectedDeviceStatus!['isConnected'] &&
+                            _selectedDeviceStatus!['isAvailable']
+                        ? (value) {
+                            setState(() => _brightness = value);
+                            _camera.setBrightness(value);
+                          }
+                        : null,
+                  ),
+                  Text(
+                    l10n.contrast,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Slider(
+                    value: _contrast,
+                    onChanged: _selectedDeviceStatus != null &&
+                            _selectedDeviceStatus!['isConnected'] &&
+                            _selectedDeviceStatus!['isAvailable']
+                        ? (value) {
+                            setState(() => _contrast = value);
+                            _camera.setContrast(value);
+                          }
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'win32_wmf.dart';
 
 class UVCCamera {

@@ -66,5 +66,25 @@
   "deviceNotAvailable": "Device not available",
   "@deviceNotAvailable": {
     "description": "Error message when device is not available"
+  },
+  "deviceConnected": "Connected",
+  "@deviceConnected": {
+    "description": "Status message when device is connected"
+  },
+  "deviceAvailable": "Available",
+  "@deviceAvailable": {
+    "description": "Status message when device is available"
+  },
+  "deviceStatus": "Device Status",
+  "@deviceStatus": {
+    "description": "Title for device status section"
+  },
+  "checkingDeviceStatus": "Checking device status...",
+  "@checkingDeviceStatus": {
+    "description": "Message shown while checking device status"
+  },
+  "errorMessage": "Error message:",
+  "@errorMessage": {
+    "description": "Label for error message"
   }
 } 

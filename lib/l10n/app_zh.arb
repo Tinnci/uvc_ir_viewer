@@ -12,8 +12,13 @@
   "cameraSettings": "相机设置",
   "brightness": "亮度",
   "contrast": "对比度",
-  "takePhoto": "拍照",
-  "recordVideo": "录像",
   "deviceDisconnected": "设备已断开连接",
-  "deviceNotAvailable": "设备不可用"
+  "deviceNotAvailable": "设备不可用",
+  "deviceConnected": "已连接",
+  "deviceAvailable": "可用",
+  "deviceStatus": "设备状态",
+  "checkingDeviceStatus": "正在检查设备状态...",
+  "errorMessage": "错误信息：",
+  "takePhoto": "拍照",
+  "recordVideo": "录像"
 } 
