@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'dart:async';
 import 'uvc_camera.dart';
 
 class CameraPreviewPage extends StatefulWidget {
@@ -19,6 +20,8 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
   double _brightness = 0.5;
   double _contrast = 0.5;
   bool _isSettingsOpen = false;
+  Timer? _statusCheckTimer;
+  Map<String, dynamic>? _selectedDeviceStatus;
 
   @override
   void initState() {
@@ -36,6 +39,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
           _isInitializing = false;
           _error = null;
         });
+        _startStatusCheck();
       }
     } catch (e) {
       _logger.severe('Failed to initialize camera', e);
@@ -48,12 +52,38 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
     }
   }
 
+  void _startStatusCheck() {
+    _statusCheckTimer?.cancel();
+    _statusCheckTimer =
+        Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (_selectedDeviceIndex != null) {
+        final status = await _camera.getDeviceStatus(_selectedDeviceIndex!);
+        if (mounted) {
+          setState(() {
+            _selectedDeviceStatus = status;
+            if (!status['isConnected'] || !status['isAvailable']) {
+              _error = status['error'] ?? '设备已断开连接';
+              _selectedDeviceIndex = null;
+            }
+          });
+        }
+      }
+    });
+  }
+
   Future<void> _startPreview(int deviceIndex) async {
     try {
+      final status = await _camera.getDeviceStatus(deviceIndex);
+      if (!status['isConnected'] || !status['isAvailable']) {
+        throw Exception(status['error'] ?? '设备不可用');
+      }
+
       await _camera.openDevice(deviceIndex);
       if (mounted) {
         setState(() {
           _selectedDeviceIndex = deviceIndex;
+          _selectedDeviceStatus = status;
+          _error = null;
         });
       }
     } catch (e) {
@@ -86,6 +116,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
 
   @override
   void dispose() {
+    _statusCheckTimer?.cancel();
     _camera.dispose();
     super.dispose();
   }
@@ -218,7 +249,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
               const SizedBox(height: 16),
               Expanded(
                 child: ListView.builder(
-                  itemCount: _devices!.length,
+                  itemCount: _devices?.length ?? 0,
                   itemBuilder: (context, index) => Card(
                     margin:
                         const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
@@ -226,7 +257,24 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                       leading: const Icon(Icons.camera),
                       title: Text(_devices![index]),
                       onTap: () => _startPreview(index),
-                      trailing: const Icon(Icons.arrow_forward_ios),
+                      trailing: FutureBuilder<Map<String, dynamic>>(
+                        future: _camera.getDeviceStatus(index),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            final status = snapshot.data!;
+                            final isAvailable = status['isAvailable'] as bool;
+                            return Icon(
+                              isAvailable ? Icons.check_circle : Icons.error,
+                              color: isAvailable ? Colors.green : Colors.red,
+                            );
+                          }
+                          return const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -241,6 +289,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
       margin: const EdgeInsets.all(16),
       child: Column(
         children: [
+          _buildDeviceStatus(),
           Expanded(
             child: Container(
               color: Colors.black,
@@ -353,6 +402,60 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
           label: (value * 100).toStringAsFixed(0),
         ),
       ],
+    );
+  }
+
+  Widget _buildDeviceStatus() {
+    if (_selectedDeviceStatus == null) return const SizedBox.shrink();
+
+    final status = _selectedDeviceStatus!;
+    final isConnected = status['isConnected'] as bool;
+    final isAvailable = status['isAvailable'] as bool;
+    final deviceName = status['deviceName'] as String;
+    final error = status['error'] as String?;
+
+    return Card(
+      margin: const EdgeInsets.all(8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('设备名称: $deviceName',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(
+                  isConnected ? Icons.check_circle : Icons.error,
+                  color: isConnected ? Colors.green : Colors.red,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text('连接状态: ${isConnected ? "已连接" : "未连接"}'),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  isAvailable ? Icons.check_circle : Icons.error,
+                  color: isAvailable ? Colors.green : Colors.red,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Text('设备状态: ${isAvailable ? "正常" : "异常"}'),
+              ],
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 8),
+              Text('错误信息: $error',
+                  style: const TextStyle(color: Colors.red, fontSize: 12)),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
