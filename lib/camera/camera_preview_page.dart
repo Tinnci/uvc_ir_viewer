@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'dart:async';
 import 'uvc_camera.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class CameraPreviewPage extends StatefulWidget {
   const CameraPreviewPage({super.key});
@@ -123,35 +124,68 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('UVC IR Camera Preview'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(
+          l10n.appTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        elevation: 2,
         actions: [
           if (_selectedDeviceIndex != null)
-            IconButton(
-              icon: Icon(
-                  _isSettingsOpen ? Icons.settings_outlined : Icons.settings),
-              onPressed: () =>
-                  setState(() => _isSettingsOpen = !_isSettingsOpen),
-              tooltip: '相机设置',
+            Tooltip(
+              message: l10n.cameraSettings,
+              child: IconButton(
+                icon: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    _isSettingsOpen ? Icons.settings : Icons.settings_outlined,
+                    key: ValueKey(_isSettingsOpen),
+                  ),
+                ),
+                onPressed: () =>
+                    setState(() => _isSettingsOpen = !_isSettingsOpen),
+              ),
             ),
         ],
       ),
-      body: _buildBody(),
+      body: Container(
+        color: Theme.of(context).colorScheme.surface,
+        child: _buildBody(context),
+      ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_isInitializing) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('正在初始化相机...'),
-          ],
+      return Center(
+        child: Card(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  l10n.initializingCamera,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -160,15 +194,26 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
       return Center(
         child: Card(
           margin: const EdgeInsets.all(16),
+          elevation: 4,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                const SizedBox(height: 16),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 16),
+                const Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: Colors.red,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  _error!,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.red,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: () {
                     setState(() {
@@ -178,7 +223,10 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                     _initializeCamera();
                   },
                   icon: const Icon(Icons.refresh),
-                  label: const Text('重试'),
+                  label: Text(l10n.retry),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(120, 48),
+                  ),
                 ),
               ],
             ),
@@ -188,27 +236,62 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
     }
 
     if (!_camera.isInitialized) {
-      return const Center(child: Text('相机未初始化'));
+      return Center(
+        child: Card(
+          margin: const EdgeInsets.all(16),
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 64,
+                  color: Colors.orange,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  l10n.cameraNotInitialized,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.orange,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     if (_devices == null || _devices!.isEmpty) {
       return Center(
         child: Card(
           margin: const EdgeInsets.all(16),
+          elevation: 4,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.camera_alt_outlined,
-                    size: 48, color: Colors.grey),
-                const SizedBox(height: 16),
-                const Text('未找到可用的相机设备'),
-                const SizedBox(height: 16),
+                const Icon(
+                  Icons.camera_alt_outlined,
+                  size: 64,
+                  color: Colors.grey,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  l10n.noDevicesFound,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: _initializeCamera,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('刷新'),
+                  label: Text(l10n.refresh),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(120, 48),
+                  ),
                 ),
               ],
             ),
@@ -221,62 +304,63 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
       children: [
         Expanded(
           flex: 3,
-          child: _buildPreviewArea(),
+          child: _buildPreviewArea(context),
         ),
-        if (_isSettingsOpen && _selectedDeviceIndex != null)
-          SizedBox(
-            width: 300,
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          child: SizedBox(
+            width: _isSettingsOpen && _selectedDeviceIndex != null ? 300 : 0,
             child: Card(
               margin: const EdgeInsets.all(8),
-              child: _buildSettingsPanel(),
+              elevation: 4,
+              child: _isSettingsOpen && _selectedDeviceIndex != null
+                  ? _buildSettingsPanel(context)
+                  : null,
             ),
           ),
+        ),
       ],
     );
   }
 
-  Widget _buildPreviewArea() {
+  Widget _buildPreviewArea(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (_selectedDeviceIndex == null) {
       return Card(
         margin: const EdgeInsets.all(16),
+        elevation: 4,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('选择相机设备：',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
+              Text(
+                l10n.selectDevice,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 24),
               Expanded(
                 child: ListView.builder(
-                  itemCount: _devices?.length ?? 0,
-                  itemBuilder: (context, index) => Card(
-                    margin:
-                        const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    child: ListTile(
-                      leading: const Icon(Icons.camera),
-                      title: Text(_devices![index]),
-                      onTap: () => _startPreview(index),
-                      trailing: FutureBuilder<Map<String, dynamic>>(
-                        future: _camera.getDeviceStatus(index),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            final status = snapshot.data!;
-                            final isAvailable = status['isAvailable'] as bool;
-                            return Icon(
-                              isAvailable ? Icons.check_circle : Icons.error,
-                              color: isAvailable ? Colors.green : Colors.red,
-                            );
-                          }
-                          return const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          );
-                        },
+                  itemCount: _devices!.length,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemBuilder: (context, index) {
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
                       ),
-                    ),
-                  ),
+                      child: ListTile(
+                        leading: const Icon(Icons.camera),
+                        title: Text(_devices![index]),
+                        onTap: () => _startPreview(index),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -287,30 +371,17 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
 
     return Card(
       margin: const EdgeInsets.all(16),
+      elevation: 4,
       child: Column(
         children: [
-          _buildDeviceStatus(),
           Expanded(
             child: Container(
               color: Colors.black,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  if (_camera.isPreviewStarted)
-                    const Center(
-                        child:
-                            Text('预览画面', style: TextStyle(color: Colors.white)))
-                  else
-                    const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(color: Colors.white),
-                        SizedBox(height: 16),
-                        Text('正在启动预览...',
-                            style: TextStyle(color: Colors.white)),
-                      ],
-                    ),
-                ],
+              child: Center(
+                child: Text(
+                  l10n.previewArea,
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ),
@@ -322,13 +393,20 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                 FilledButton.icon(
                   onPressed: _stopPreview,
                   icon: const Icon(Icons.stop),
-                  label: const Text('停止预览'),
+                  label: Text(l10n.stopPreview),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    minimumSize: const Size(120, 48),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 FilledButton.icon(
                   onPressed: () => _startPreview(_selectedDeviceIndex!),
                   icon: const Icon(Icons.refresh),
-                  label: const Text('重新启动'),
+                  label: Text(l10n.restart),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(120, 48),
+                  ),
                 ),
               ],
             ),
@@ -338,121 +416,58 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
     );
   }
 
-  Widget _buildSettingsPanel() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text('相机设置',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const Divider(),
-        const SizedBox(height: 16),
-        _buildSettingSlider(
-          label: '亮度',
-          value: _brightness,
-          icon: Icons.brightness_6,
-          onChanged: (value) => setState(() => _brightness = value),
-        ),
-        const SizedBox(height: 16),
-        _buildSettingSlider(
-          label: '对比度',
-          value: _contrast,
-          icon: Icons.contrast,
-          onChanged: (value) => setState(() => _contrast = value),
-        ),
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          onPressed: () {
-            // TODO: 实现图像保存功能
-          },
-          icon: const Icon(Icons.photo_camera),
-          label: const Text('拍照'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () {
-            // TODO: 实现录制功能
-          },
-          icon: const Icon(Icons.videocam),
-          label: const Text('录制'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSettingSlider({
-    required String label,
-    required double value,
-    required IconData icon,
-    required ValueChanged<double> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 20),
-            const SizedBox(width: 8),
-            Text(label),
-          ],
-        ),
-        Slider(
-          value: value,
-          onChanged: onChanged,
-          divisions: 100,
-          label: (value * 100).toStringAsFixed(0),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDeviceStatus() {
-    if (_selectedDeviceStatus == null) return const SizedBox.shrink();
-
-    final status = _selectedDeviceStatus!;
-    final isConnected = status['isConnected'] as bool;
-    final isAvailable = status['isAvailable'] as bool;
-    final deviceName = status['deviceName'] as String;
-    final error = status['error'] as String?;
-
+  Widget _buildSettingsPanel(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
-      margin: const EdgeInsets.all(8),
+      margin: const EdgeInsets.all(16),
+      elevation: 4,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('设备名称: $deviceName',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  isConnected ? Icons.check_circle : Icons.error,
-                  color: isConnected ? Colors.green : Colors.red,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Text('连接状态: ${isConnected ? "已连接" : "未连接"}'),
-              ],
+            Text(
+              l10n.cameraSettings,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  isAvailable ? Icons.check_circle : Icons.error,
-                  color: isAvailable ? Colors.green : Colors.red,
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-                Text('设备状态: ${isAvailable ? "正常" : "异常"}'),
-              ],
-            ),
-            if (error != null) ...[
+            const SizedBox(height: 16),
+            if (_selectedDeviceStatus != null) ...[
+              Text(
+                '设备状态',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
-              Text('错误信息: $error',
-                  style: const TextStyle(color: Colors.red, fontSize: 12)),
+              Text(
+                  '连接状态: ${_selectedDeviceStatus!['isConnected'] ? '已连接' : '未连接'}'),
+              Text(
+                  '可用状态: ${_selectedDeviceStatus!['isAvailable'] ? '可用' : '不可用'}'),
+              if (_selectedDeviceStatus!['error'] != null)
+                Text('错误信息: ${_selectedDeviceStatus!['error']}'),
+              const SizedBox(height: 16),
             ],
+            Text(
+              l10n.brightness,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Slider(
+              value: _brightness,
+              onChanged: (value) {
+                setState(() => _brightness = value);
+                _camera.setBrightness(value);
+              },
+            ),
+            Text(
+              l10n.contrast,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Slider(
+              value: _contrast,
+              onChanged: (value) {
+                setState(() => _contrast = value);
+                _camera.setContrast(value);
+              },
+            ),
           ],
         ),
       ),

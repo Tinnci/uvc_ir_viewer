@@ -123,9 +123,23 @@ extension IMFSourceReaderMethods on Pointer<IMFSourceReader> {
 class WMFCamera {
   Pointer<IMFSourceReader>? _reader;
   bool _isPreviewActive = false;
+  bool _isInitialized = false;
 
   /// Whether the preview is currently active
   bool get isPreviewActive => _isPreviewActive;
+
+  /// Whether the camera system is initialized
+  bool get isInitialized => _isInitialized;
+
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+
+    final hr = _mfStartup(mfVersion, 0);
+    if (win32.FAILED(hr)) {
+      throw win32.WindowsException(hr);
+    }
+    _isInitialized = true;
+  }
 
   static Future<List<String>> enumerateDevices() async {
     final hr = _mfStartup(mfVersion, 0);
@@ -177,72 +191,127 @@ class WMFCamera {
     }
   }
 
-  Future<void> startPreview(int deviceIndex) async {
-    if (_isPreviewActive) return;
-
-    final hr = _mfStartup(mfVersion, 0);
-    if (win32.FAILED(hr)) {
-      throw win32.WindowsException(hr);
+  Future<bool> checkDeviceAvailability(int deviceIndex) async {
+    if (!_isInitialized) {
+      await initialize();
     }
 
-    try {
-      final ppDevices = calloc<Pointer<Pointer<Void>>>();
-      final pCount = calloc<Uint32>();
+    final ppDevices = calloc<Pointer<Pointer<Void>>>();
+    final pCount = calloc<Uint32>();
 
+    try {
+      final hr = _mfEnumDeviceSources(
+          mfDevSourceAttrSourceTypeVidcapGuid.cast(), ppDevices, pCount);
+
+      if (win32.FAILED(hr)) {
+        return false;
+      }
+
+      if (deviceIndex < 0 || deviceIndex >= pCount.value) {
+        return false;
+      }
+
+      final deviceArray = ppDevices.value;
+      final typedDeviceArray = deviceArray.cast<Pointer<IMFActivate>>();
+      final device = typedDeviceArray[deviceIndex];
+
+      final ppSource = calloc<Pointer<Void>>();
       try {
-        var hr = _mfEnumDeviceSources(
-            mfDevSourceAttrSourceTypeVidcapGuid.cast(), ppDevices, pCount);
+        final hr = _mfCreateSourceReaderFromMediaSource(
+            device.cast(), nullptr.cast(), ppSource);
+
+        if (win32.FAILED(hr)) {
+          return false;
+        }
+
+        // 释放测试用的 SourceReader
+        final reader = ppSource.cast<IMFSourceReader>();
+        final vtable = reader.cast<Pointer<IntPtr>>().value;
+        final release = (vtable + 2 * sizeOf<IntPtr>())
+            .cast<NativeFunction<Int32 Function(Pointer<Void>)>>()
+            .asFunction<int Function(Pointer<Void>)>();
+        release(reader.cast());
+
+        return true;
+      } finally {
+        calloc.free(ppSource);
+      }
+    } finally {
+      calloc.free(ppDevices);
+      calloc.free(pCount);
+    }
+  }
+
+  Future<void> startPreview(int deviceIndex) async {
+    if (_isPreviewActive) {
+      await stopPreview();
+    }
+
+    if (!_isInitialized) {
+      await initialize();
+    }
+
+    final ppDevices = calloc<Pointer<Pointer<Void>>>();
+    final pCount = calloc<Uint32>();
+
+    try {
+      final hr = _mfEnumDeviceSources(
+          mfDevSourceAttrSourceTypeVidcapGuid.cast(), ppDevices, pCount);
+
+      if (win32.FAILED(hr)) {
+        throw win32.WindowsException(hr);
+      }
+
+      if (deviceIndex < 0 || deviceIndex >= pCount.value) {
+        throw Exception('Invalid device index');
+      }
+
+      final deviceArray = ppDevices.value;
+      final typedDeviceArray = deviceArray.cast<Pointer<IMFActivate>>();
+      final device = typedDeviceArray[deviceIndex];
+
+      final ppSource = calloc<Pointer<Void>>();
+      try {
+        final hr = _mfCreateSourceReaderFromMediaSource(
+            device.cast(), nullptr.cast(), ppSource);
 
         if (win32.FAILED(hr)) {
           throw win32.WindowsException(hr);
         }
 
-        if (deviceIndex >= pCount.value) {
-          throw Exception('Invalid device index');
-        }
-
-        final deviceArray = ppDevices.value;
-        final typedDeviceArray = deviceArray.cast<Pointer<IMFActivate>>();
-        final device = typedDeviceArray[deviceIndex];
-
-        final ppSource = calloc<Pointer<Void>>();
-        try {
-          hr = _mfCreateSourceReaderFromMediaSource(
-              device.cast(), nullptr, ppSource);
-
-          if (win32.FAILED(hr)) {
-            throw win32.WindowsException(hr);
-          }
-
-          _reader = ppSource.cast();
-          _isPreviewActive = true;
-        } finally {
-          calloc.free(ppSource);
-        }
+        _reader = ppSource.cast<IMFSourceReader>();
+        _isPreviewActive = true;
       } finally {
-        calloc.free(ppDevices);
-        calloc.free(pCount);
+        calloc.free(ppSource);
       }
-    } catch (e) {
-      _mfShutdown();
-      rethrow;
+    } finally {
+      calloc.free(ppDevices);
+      calloc.free(pCount);
     }
   }
 
   Future<void> stopPreview() async {
-    if (!_isPreviewActive) return;
+    if (!_isPreviewActive || _reader == null) return;
 
-    if (_reader != null) {
-      final vtable = _reader!.cast<Pointer<IntPtr>>().value;
-      final release = (vtable + 2 * sizeOf<IntPtr>())
-          .cast<NativeFunction<Int32 Function(Pointer<Void>)>>()
-          .asFunction<int Function(Pointer<Void>)>();
-      release(_reader!.cast());
-      _reader = null;
+    final vtable = _reader!.cast<Pointer<IntPtr>>().value;
+    final release = (vtable + 2 * sizeOf<IntPtr>())
+        .cast<NativeFunction<Int32 Function(Pointer<Void>)>>()
+        .asFunction<int Function(Pointer<Void>)>();
+    release(_reader!.cast());
+
+    _reader = null;
+    _isPreviewActive = false;
+  }
+
+  Future<void> dispose() async {
+    if (_isPreviewActive) {
+      await stopPreview();
     }
 
-    _isPreviewActive = false;
-    _mfShutdown();
+    if (_isInitialized) {
+      _mfShutdown();
+      _isInitialized = false;
+    }
   }
 
   Future<void> setResolution(int width, int height) async {
@@ -250,32 +319,28 @@ class WMFCamera {
       throw Exception('Camera preview is not active');
     }
 
-    final mediaType = calloc<Pointer<Void>>();
+    final ppMediaType = calloc<Pointer<Void>>();
     try {
-      var hr = _mfCreateMediaType(mediaType);
+      var hr = _mfCreateMediaType(ppMediaType);
       if (win32.FAILED(hr)) {
         throw win32.WindowsException(hr);
       }
 
-      final frameSize = (width << 32) | height;
+      final mediaType = ppMediaType.cast<IMFMediaType>();
       hr = mediaType
           .cast<IMFAttributes>()
-          .setUINT64(mfMtFrameSizeGuid.cast(), frameSize);
+          .setUINT64(mfMtFrameSizeGuid.cast(), (width << 32) | height);
 
       if (win32.FAILED(hr)) {
         throw win32.WindowsException(hr);
       }
 
-      hr = _reader!.setCurrentMediaType(
-          0, // First video stream
-          nullptr,
-          mediaType.cast());
-
+      hr = _reader!.setCurrentMediaType(0, nullptr.cast(), mediaType);
       if (win32.FAILED(hr)) {
         throw win32.WindowsException(hr);
       }
     } finally {
-      calloc.free(mediaType);
+      calloc.free(ppMediaType);
     }
   }
 }

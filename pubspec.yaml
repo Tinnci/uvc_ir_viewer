@@ -1,5 +1,5 @@
 name: uvc_ir_viewer
-description: "A new Flutter project."
+description: A UVC IR camera preview application.
 
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
@@ -7,31 +7,28 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.6.0-149.3.beta
+  sdk: '>=3.1.5 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  win32: ^5.4.0
-  ffi: ^2.1.2
+  intl: ^0.19.0
   logging: ^1.2.0
-  windows_media: ^0.2.0
+  cupertino_icons: ^1.0.2
+  ffi: ^2.1.0
+  win32: ^5.1.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   integration_test:
     sdk: flutter
-  flutter_lints: ^4.0.0
+  flutter_lints: ^2.0.0
 
 flutter:
   uses-material-design: true
 
   # Enable generation of localized Strings from arb files.
   generate: true
-
-  assets:
-    # Add assets from the images directory to the application.
-    - assets/images/

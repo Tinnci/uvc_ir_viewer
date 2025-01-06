@@ -129,4 +129,20 @@ class UVCCamera {
   Future<void> stopPreview() async {
     await _camera.stopPreview();
   }
+
+  Future<void> setBrightness(double value) async {
+    if (!isInitialized) {
+      throw Exception('Camera is not initialized');
+    }
+    // TODO: 实现亮度调节功能
+    _logger.info('Setting brightness to $value');
+  }
+
+  Future<void> setContrast(double value) async {
+    if (!isInitialized) {
+      throw Exception('Camera is not initialized');
+    }
+    // TODO: 实现对比度调节功能
+    _logger.info('Setting contrast to $value');
+  }
 }

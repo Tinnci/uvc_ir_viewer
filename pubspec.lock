@@ -41,6 +41,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.0"
+  cupertino_icons:
+    dependency: "direct main"
+    description:
+      name: cupertino_icons
+      sha256: ba631d1c7f7bef6b729a622b7b752645a2d076dba9976925b8f25725a30e1ee6
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.8"
   fake_async:
     dependency: transitive
     description:
@@ -79,10 +87,10 @@ packages:
     dependency: "direct dev"
     description:
       name: flutter_lints
-      sha256: "3f41d009ba7172d5ff9be5f6e6e6abb4300e263aab8866d2a0842ed2a70f8f0c"
+      sha256: a25a15ebbdfc33ab1cd26c63a6ee519df92338a9c10f122adda92938253bef04
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.0"
+    version: "2.0.3"
   flutter_localizations:
     dependency: "direct main"
     description: flutter
@@ -104,7 +112,7 @@ packages:
     source: sdk
     version: "0.0.0"
   intl:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: intl
       sha256: d6f56758b7d3014a48af9701c085700aac781a92a87a62b1333b46d8879661cf
@@ -139,10 +147,10 @@ packages:
     dependency: transitive
     description:
       name: lints
-      sha256: "976c774dd944a42e83e2467f4cc670daef7eed6295b10b36ae8c85bcbf828235"
+      sha256: "0a217c6c989d21039f1498c3ed9f3ed71b354e69873f13a8dfc3c9fe76f1b452"
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.0"
+    version: "2.1.1"
   logging:
     dependency: "direct main"
     description:
@@ -292,118 +300,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.10.0"
-  windows_applicationmodel:
-    dependency: transitive
-    description:
-      name: windows_applicationmodel
-      sha256: fce866308c8395efca0ea646cc8ee3ff5a59470f82458e420cf170129876cc85
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
-  windows_data:
-    dependency: transitive
-    description:
-      name: windows_data
-      sha256: "7da30e632a9bb8db10c7c4bae11e8cae66cf9b89efb5f1a7ff19b8906f3fdf08"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
-  windows_devices:
-    dependency: transitive
-    description:
-      name: windows_devices
-      sha256: "503d78b9f721d42b35c1d280c3ec839d1006d29b7b5cabd38ed100458d9f0358"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
-  windows_foundation:
-    dependency: transitive
-    description:
-      name: windows_foundation
-      sha256: "3ed6e5346e9d54eff9781b1b371a47ca323d0978f4b26e8916e8bc494cae187f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
-  windows_globalization:
-    dependency: transitive
-    description:
-      name: windows_globalization
-      sha256: "162e7f05a866f2d99ae797afa9c68dff570ba8562d13c5c0a7cc14089b3c8d18"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.0+1"
-  windows_graphics:
-    dependency: transitive
-    description:
-      name: windows_graphics
-      sha256: a6646c32ff79105264dcc9cf47ead211ba176386f857b63394e6d29f0c5ff9eb
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
-  windows_media:
-    dependency: "direct main"
-    description:
-      name: windows_media
-      sha256: "6b55c1a7ed48f1e38eb1dc4829eca7ee9fdbe6d2a4744d887d99ba13bde78c7d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
-  windows_networking:
-    dependency: transitive
-    description:
-      name: windows_networking
-      sha256: "04f9e1f004f85af3d400c24bd226efb0c4513f7f843ba07998528f0bdee62e7a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
-  windows_perception:
-    dependency: transitive
-    description:
-      name: windows_perception
-      sha256: aa9fb6c8c97be855aece8f28943284c2680afa65a012144e012173081e568728
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.0"
-  windows_security:
-    dependency: transitive
-    description:
-      name: windows_security
-      sha256: c1f2bbe4c2b2fdf07cb50afff652413bb8f908d27328c547db03e7591c1331e2
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.0+1"
-  windows_services:
-    dependency: transitive
-    description:
-      name: windows_services
-      sha256: dad37ce3c795867e650b66a347b412e066e625a734ac2444ff163f4e5b8a040b
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.0"
-  windows_storage:
-    dependency: transitive
-    description:
-      name: windows_storage
-      sha256: ba370214ad4dca9ffda684f40231a5da68f296d8d8dde1b7c0b8011dd150b64e
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
-  windows_system:
-    dependency: transitive
-    description:
-      name: windows_system
-      sha256: "8d5c2524bef8c71923b16cd9610fe194c77540687fae661e4fbbb7c78340fabe"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.0+1"
-  windows_ui:
-    dependency: transitive
-    description:
-      name: windows_ui
-      sha256: "8fdff2a7bc05070ea3021b320d64fa27559095708bc8912cd3ee9eb509ed9b95"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.2.0"
 sdks:
-  dart: ">=3.6.0-149.3.beta <4.0.0"
+  dart: ">=3.5.0 <4.0.0"
   flutter: ">=3.18.0-18.0.pre.54"

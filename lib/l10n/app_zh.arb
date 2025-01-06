@@ -1,0 +1,19 @@
+{
+  "appTitle": "UVC IR 相机预览",
+  "initializingCamera": "正在初始化相机...",
+  "cameraNotInitialized": "相机未初始化",
+  "noDevicesFound": "未找到可用的相机设备",
+  "selectDevice": "选择相机设备：",
+  "refresh": "刷新",
+  "retry": "重试",
+  "stopPreview": "停止预览",
+  "restart": "重新启动",
+  "previewArea": "预览区域",
+  "cameraSettings": "相机设置",
+  "brightness": "亮度",
+  "contrast": "对比度",
+  "takePhoto": "拍照",
+  "recordVideo": "录像",
+  "deviceDisconnected": "设备已断开连接",
+  "deviceNotAvailable": "设备不可用"
+} 

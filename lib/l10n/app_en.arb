@@ -1,0 +1,70 @@
+{
+  "appTitle": "UVC IR Camera Preview",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "initializingCamera": "Initializing camera...",
+  "@initializingCamera": {
+    "description": "Message shown while camera is initializing"
+  },
+  "cameraNotInitialized": "Camera not initialized",
+  "@cameraNotInitialized": {
+    "description": "Message shown when camera is not initialized"
+  },
+  "noDevicesFound": "No camera devices found",
+  "@noDevicesFound": {
+    "description": "Message shown when no camera devices are found"
+  },
+  "selectDevice": "Select camera device:",
+  "@selectDevice": {
+    "description": "Title for camera device selection"
+  },
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Label for refresh button"
+  },
+  "retry": "Retry",
+  "@retry": {
+    "description": "Label for retry button"
+  },
+  "stopPreview": "Stop Preview",
+  "@stopPreview": {
+    "description": "Label for stop preview button"
+  },
+  "restart": "Restart",
+  "@restart": {
+    "description": "Label for restart button"
+  },
+  "previewArea": "Preview Area",
+  "@previewArea": {
+    "description": "Label for preview area"
+  },
+  "cameraSettings": "Camera Settings",
+  "@cameraSettings": {
+    "description": "Title for camera settings"
+  },
+  "brightness": "Brightness",
+  "@brightness": {
+    "description": "Label for brightness control"
+  },
+  "contrast": "Contrast",
+  "@contrast": {
+    "description": "Label for contrast control"
+  },
+  "takePhoto": "Take Photo",
+  "@takePhoto": {
+    "description": "Tooltip for take photo button"
+  },
+  "recordVideo": "Record Video",
+  "@recordVideo": {
+    "description": "Tooltip for record video button"
+  },
+  "deviceDisconnected": "Device disconnected",
+  "@deviceDisconnected": {
+    "description": "Error message when device is disconnected"
+  },
+  "deviceNotAvailable": "Device not available",
+  "@deviceNotAvailable": {
+    "description": "Error message when device is not available"
+  }
+} 

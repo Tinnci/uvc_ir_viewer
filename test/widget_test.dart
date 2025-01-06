@@ -36,30 +36,37 @@ void main() {
         await tester.pumpWidget(const MaterialApp(home: CameraPreviewPage()));
         await tester.pump(const Duration(seconds: 2)); // 等待足够长的时间以触发错误状态
 
-        // 如果出现错误状态（在测试环境中很可能会出现）
-        if (find.byIcon(Icons.error_outline).evaluate().isNotEmpty) {
-          expect(find.byIcon(Icons.error_outline), findsOneWidget);
-          expect(find.byType(FilledButton), findsOneWidget);
-          expect(find.text('重试'), findsOneWidget);
+        // 等待错误状态显示
+        await tester.pumpAndSettle();
 
-          // 测试重试按钮点击
-          await tester.tap(find.text('重试'));
-          await tester.pump();
-          expect(find.text('正在初始化相机...'), findsOneWidget);
-        }
+        // 验证错误图标
+        expect(find.byIcon(Icons.error_outline), findsOneWidget);
+
+        // 验证重试按钮
+        expect(find.text('重试'), findsOneWidget);
+        expect(find.byIcon(Icons.refresh), findsOneWidget);
+
+        // 测试重试按钮点击
+        await tester.tap(find.text('重试'));
+        await tester.pumpAndSettle(); // 等待状态更新完成
+
+        // 验证已切换到初始化状态
+        expect(find.text('正在初始化相机...'), findsOneWidget);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
       });
 
       testWidgets('No camera state display', (WidgetTester tester) async {
         await tester.pumpWidget(const MaterialApp(home: CameraPreviewPage()));
         await tester.pump(const Duration(seconds: 2));
+        await tester.pumpAndSettle();
 
         // 如果没有找到相机
         if (find.text('未找到可用的相机设备').evaluate().isNotEmpty) {
           expect(find.text('未找到可用的相机设备'), findsOneWidget);
-          expect(find.text('刷新'), findsOneWidget);
+          expect(find.widgetWithText(FilledButton, '刷新'), findsOneWidget);
 
           // 测试刷新按钮点击
-          await tester.tap(find.text('刷新'));
+          await tester.tap(find.widgetWithText(FilledButton, '刷新'));
           await tester.pump();
           expect(find.text('正在初始化相机...'), findsOneWidget);
         }
@@ -67,7 +74,7 @@ void main() {
 
       testWidgets('Settings button visibility', (WidgetTester tester) async {
         await tester.pumpWidget(const MaterialApp(home: CameraPreviewPage()));
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // 初始状态不应该显示设置按钮
         expect(find.byIcon(Icons.settings), findsNothing);
@@ -77,30 +84,43 @@ void main() {
       testWidgets('Camera device list display', (WidgetTester tester) async {
         await tester.pumpWidget(const MaterialApp(home: CameraPreviewPage()));
         await tester.pump(const Duration(seconds: 2));
+        await tester.pumpAndSettle();
 
         // 如果显示设备列表
         if (find.text('选择相机设备：').evaluate().isNotEmpty) {
+          // 验证设备列表标题
           expect(find.text('选择相机设备：'), findsOneWidget);
           expect(find.byType(Card), findsWidgets);
           expect(find.byType(ListTile), findsWidgets);
+
+          // 验证设备列表容器
+          expect(find.byType(Column), findsWidgets);
+          expect(find.byType(Expanded), findsWidgets);
+
+          // 验证设备列表样式
+          final titleFinder = find.text('选择相机设备：');
+          final titleWidget = tester.widget<Text>(titleFinder);
+          expect(titleWidget.style?.fontSize, 18);
+          expect(titleWidget.style?.fontWeight, FontWeight.bold);
         }
       });
 
       testWidgets('Preview controls visibility', (WidgetTester tester) async {
         await tester.pumpWidget(const MaterialApp(home: CameraPreviewPage()));
         await tester.pump(const Duration(seconds: 2));
+        await tester.pumpAndSettle();
 
         // 如果相机已选择并显示控制按钮
         if (find.text('停止预览').evaluate().isNotEmpty) {
-          expect(find.text('停止预览'), findsOneWidget);
-          expect(find.text('重新启动'), findsOneWidget);
-          expect(find.byType(FilledButton), findsWidgets);
+          expect(find.widgetWithText(FilledButton, '停止预览'), findsOneWidget);
+          expect(find.widgetWithText(FilledButton, '重新启动'), findsOneWidget);
         }
       });
 
       testWidgets('Settings panel content', (WidgetTester tester) async {
         await tester.pumpWidget(const MaterialApp(home: CameraPreviewPage()));
         await tester.pump(const Duration(seconds: 2));
+        await tester.pumpAndSettle();
 
         // 如果设置面板可见
         if (find.text('相机设置').evaluate().isNotEmpty) {
@@ -121,13 +141,13 @@ void main() {
         // 小屏幕测试
         await tester.binding.setSurfaceSize(smallScreen);
         await tester.pumpWidget(const MaterialApp(home: CameraPreviewPage()));
-        await tester.pump();
+        await tester.pumpAndSettle();
         expect(find.byType(CameraPreviewPage), findsOneWidget);
 
         // 大屏幕测试
         await tester.binding.setSurfaceSize(largeScreen);
         await tester.pumpWidget(const MaterialApp(home: CameraPreviewPage()));
-        await tester.pump();
+        await tester.pumpAndSettle();
         expect(find.byType(CameraPreviewPage), findsOneWidget);
 
         // 恢复默认尺寸
