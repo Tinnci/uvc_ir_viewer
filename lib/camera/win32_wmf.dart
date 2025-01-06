@@ -75,15 +75,22 @@ class WMFCamera {
 
     try {
       debugPrint('Enumerating video capture devices...');
-      final hr = win32.CoInitializeEx(nullptr, win32.COINIT_MULTITHREADED);
+      final hr =
+          win32.CoInitializeEx(nullptr, win32.COINIT.COINIT_MULTITHREADED);
       if (win32.FAILED(hr)) {
         throw win32.WindowsException(hr);
       }
 
       try {
         // 使用 Windows 核心 API 枚举设备
-        final hDevInfo = win32.SetupDiGetClassDevs(nullptr, win32.TEXT('USB'),
-            0, win32.DIGCF_PRESENT | win32.DIGCF_ALLCLASSES);
+        const flags = win32.SETUP_DI_GET_CLASS_DEVS_FLAGS.DIGCF_PRESENT |
+            win32.SETUP_DI_GET_CLASS_DEVS_FLAGS.DIGCF_DEVICEINTERFACE;
+
+        final hDevInfo = win32.SetupDiGetClassDevs(
+            nullptr,
+            win32.TEXT('USB\\Class_0E'), // USB Video Class
+            0,
+            flags);
 
         if (hDevInfo != win32.INVALID_HANDLE_VALUE) {
           var index = 0;

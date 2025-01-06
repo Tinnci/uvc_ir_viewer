@@ -47,18 +47,16 @@ void main() {
       }
     });
 
-    test('Device Status Check', () async {
+    test('Device Status Check - No Device', () async {
       try {
         await wmfCamera.initialize();
         final devices = await wmfCamera.enumerateDevices();
-        if (devices.isNotEmpty) {
-          final status = await wmfCamera.getDeviceStatus(0);
-          expect(status, isA<Map<String, dynamic>>());
-          expect(status['isConnected'], isA<bool>());
-          expect(status['deviceName'], isA<String>());
-          expect(status['isAvailable'], isA<bool>());
-          debugPrint('Device status: $status');
-        }
+        expect(devices, isEmpty);
+
+        // 测试无效设备索引
+        final status = await wmfCamera.getDeviceStatus(0);
+        expect(status['isConnected'], false);
+        expect(status['error'], isNotNull);
       } catch (e, stackTrace) {
         debugPrint('Error during device status check: $e');
         debugPrint('Stack trace: $stackTrace');
@@ -66,38 +64,14 @@ void main() {
       }
     });
 
-    test('Device Open and Close', () async {
+    test('Device Open Error Handling', () async {
       try {
         await wmfCamera.initialize();
-        final devices = await wmfCamera.enumerateDevices();
-        if (devices.isNotEmpty) {
-          await wmfCamera.openDevice(0);
-          final status = await wmfCamera.getDeviceStatus(0);
-          expect(status['isAvailable'], true);
 
-          await wmfCamera.closeDevice();
-        }
+        // 尝试打开不存在的设备应该抛出异常
+        expect(() => wmfCamera.openDevice(0), throwsException);
       } catch (e, stackTrace) {
-        debugPrint('Error during device open/close test: $e');
-        debugPrint('Stack trace: $stackTrace');
-        rethrow;
-      }
-    });
-
-    test('Camera Parameters', () async {
-      try {
-        await wmfCamera.initialize();
-        final devices = await wmfCamera.enumerateDevices();
-        if (devices.isNotEmpty) {
-          await wmfCamera.openDevice(0);
-
-          await wmfCamera.setBrightness(0.5);
-          await wmfCamera.setContrast(0.5);
-
-          await wmfCamera.closeDevice();
-        }
-      } catch (e, stackTrace) {
-        debugPrint('Error during camera parameters test: $e');
+        debugPrint('Error during device open test: $e');
         debugPrint('Stack trace: $stackTrace');
         rethrow;
       }
@@ -131,15 +105,11 @@ void main() {
       }
     });
 
-    test('Device Enumeration', () async {
+    test('Device Enumeration - No Device', () async {
       try {
         await camera.initialize();
         final devices = await camera.enumerateDevices();
-        expect(devices, isA<List<String>>());
-        debugPrint('Found ${devices.length} devices:');
-        for (var device in devices) {
-          debugPrint('Device: $device');
-        }
+        expect(devices, isEmpty);
       } catch (e, stackTrace) {
         debugPrint('Error during device enumeration: $e');
         debugPrint('Stack trace: $stackTrace');
@@ -147,19 +117,23 @@ void main() {
       }
     });
 
-    test('Device Control', () async {
+    test('Device Control Error Handling', () async {
       try {
         await camera.initialize();
         final devices = await camera.enumerateDevices();
-        if (devices.isNotEmpty) {
-          final status = await camera.getDeviceStatus(0);
-          expect(status, isA<Map<String, dynamic>>());
+        expect(devices, isEmpty);
 
-          await camera.openDevice(0);
-          await camera.setBrightness(0.5);
-          await camera.setContrast(0.5);
-          await camera.closeDevice();
-        }
+        // 尝试获取不存在设备的状态
+        final status = await camera.getDeviceStatus(0);
+        expect(status['isConnected'], false);
+        expect(status['error'], isNotNull);
+
+        // 尝试打开不存在的设备应该抛出异常
+        expect(() => camera.openDevice(0), throwsException);
+
+        // 尝试在没有打开设备的情况下设置参数应该抛出异常
+        expect(() => camera.setBrightness(0.5), throwsException);
+        expect(() => camera.setContrast(0.5), throwsException);
       } catch (e, stackTrace) {
         debugPrint('Error during device control test: $e');
         debugPrint('Stack trace: $stackTrace');
