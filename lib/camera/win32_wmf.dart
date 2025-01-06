@@ -1,36 +1,7 @@
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart' as win32;
-
-// Helper function for string conversion
-String _convertFromUtf16(Pointer<Utf16> utf16String) {
-  if (utf16String.address == 0) return '';
-  return utf16String.toDartString();
-}
-
-// Windows Media Foundation GUIDs
-final mfDevSourceAttrSourceType =
-    win32.GUIDFromString('{C60AC5A1-4D31-4242-BFB3-8A11A7A87F48}');
-final mfDevSourceAttrSourceTypeVidcapGuid =
-    win32.GUIDFromString('{8AC3587A-4AE7-42D8-99E0-0A6013EE9E43}');
-final mfDevSourceAttrFriendlyName =
-    win32.GUIDFromString('{60D0E559-52F8-4FA2-BBCE-ACDB34A8EC01}');
-final mfMtFrameSizeGuid =
-    win32.GUIDFromString('{1652C33D-D6B2-4012-B834-72030849A37D}');
-
-// Define missing constants
-const int mfVersion = 0x00020070;
-
-// Windows Media Foundation interfaces
-base class IMFAttributes extends Opaque {}
-
-base class IMFActivate extends Opaque {}
-
-base class IMFMediaSource extends Opaque {}
-
-base class IMFSourceReader extends Opaque {}
-
-base class IMFMediaType extends Opaque {}
+import 'package:flutter/foundation.dart';
 
 // Windows Media Foundation function types
 typedef MFStartupNative = Int32 Function(Int32 version, Int32 flags);
@@ -39,94 +10,36 @@ typedef MFStartupDart = int Function(int version, int flags);
 typedef MFShutdownNative = Int32 Function();
 typedef MFShutdownDart = int Function();
 
-typedef MFEnumDeviceSourcesNative = Int32 Function(
-    Pointer<win32.GUID> guidCategory,
-    Pointer<Pointer<Pointer<Void>>> ppDevices,
-    Pointer<Uint32> pCount);
-typedef MFEnumDeviceSourcesDart = int Function(Pointer<win32.GUID> guidCategory,
-    Pointer<Pointer<Pointer<Void>>> ppDevices, Pointer<Uint32> pCount);
-
-typedef MFCreateSourceReaderFromMediaSourceNative = Int32 Function(
-    Pointer<Void> pMediaSource,
-    Pointer<win32.GUID> pAttributes,
-    Pointer<Pointer<Void>> ppSourceReader);
-typedef MFCreateSourceReaderFromMediaSourceDart = int Function(
-    Pointer<Void> pMediaSource,
-    Pointer<win32.GUID> pAttributes,
-    Pointer<Pointer<Void>> ppSourceReader);
-
-typedef MFCreateMediaTypeNative = Int32 Function(
-    Pointer<Pointer<Void>> ppMediaType);
-typedef MFCreateMediaTypeDart = int Function(
-    Pointer<Pointer<Void>> ppMediaType);
-
-// Load the MF DLL
-final _mfplat = DynamicLibrary.open('mfplat.dll');
-
-// Get function pointers
-final _mfStartup =
-    _mfplat.lookupFunction<MFStartupNative, MFStartupDart>('MFStartup');
-final _mfShutdown =
-    _mfplat.lookupFunction<MFShutdownNative, MFShutdownDart>('MFShutdown');
-final _mfEnumDeviceSources =
-    _mfplat.lookupFunction<MFEnumDeviceSourcesNative, MFEnumDeviceSourcesDart>(
-        'MFEnumDeviceSources');
-final _mfCreateSourceReaderFromMediaSource = _mfplat.lookupFunction<
-        MFCreateSourceReaderFromMediaSourceNative,
-        MFCreateSourceReaderFromMediaSourceDart>(
-    'MFCreateSourceReaderFromMediaSource');
-final _mfCreateMediaType =
-    _mfplat.lookupFunction<MFCreateMediaTypeNative, MFCreateMediaTypeDart>(
-        'MFCreateMediaType');
-
-extension IMFAttributesMethods on Pointer<IMFAttributes> {
-  int getString(Pointer<win32.GUID> guidKey, Pointer<win32.PWSTR> ppwszValue) {
-    final vtable = cast<Pointer<IntPtr>>().value;
-    final getString = (vtable + 15 * sizeOf<IntPtr>())
-        .cast<
-            NativeFunction<
-                Int32 Function(Pointer<Void>, Pointer<win32.GUID>,
-                    Pointer<win32.PWSTR>)>>()
-        .asFunction<
-            int Function(
-                Pointer<Void>, Pointer<win32.GUID>, Pointer<win32.PWSTR>)>();
-    return getString(cast(), guidKey, ppwszValue);
-  }
-
-  int setUINT64(Pointer<win32.GUID> guidKey, int value) {
-    final vtable = cast<Pointer<IntPtr>>().value;
-    final setUINT64 = (vtable + 21 * sizeOf<IntPtr>())
-        .cast<
-            NativeFunction<
-                Int32 Function(Pointer<Void>, Pointer<win32.GUID>, Uint64)>>()
-        .asFunction<int Function(Pointer<Void>, Pointer<win32.GUID>, int)>();
-    return setUINT64(cast(), guidKey, value);
-  }
-}
-
-extension IMFSourceReaderMethods on Pointer<IMFSourceReader> {
-  int setCurrentMediaType(int streamIndex, Pointer<win32.GUID> guid,
-      Pointer<IMFMediaType> mediaType) {
-    final vtable = cast<Pointer<IntPtr>>().value;
-    final setCurrentMediaType = (vtable + 15 * sizeOf<IntPtr>())
-        .cast<
-            NativeFunction<
-                Int32 Function(Pointer<Void>, Uint32, Pointer<win32.GUID>,
-                    Pointer<Void>)>>()
-        .asFunction<
-            int Function(
-                Pointer<Void>, int, Pointer<win32.GUID>, Pointer<Void>)>();
-    return setCurrentMediaType(cast(), streamIndex, guid, mediaType.cast());
-  }
-}
+// Define missing constants
+const int mfVersion = 0x00020070;
 
 class WMFCamera {
-  Pointer<IMFSourceReader>? _reader;
-  bool _isPreviewActive = false;
   bool _isInitialized = false;
+  static DynamicLibrary? _mfplat;
+  static Function? _mfStartup;
+  static Function? _mfShutdown;
+  int? _currentDeviceIndex;
+  bool _isDeviceOpen = false;
 
-  /// Whether the preview is currently active
-  bool get isPreviewActive => _isPreviewActive;
+  static void _initializeLibraries() {
+    if (_mfplat != null) return;
+
+    try {
+      debugPrint('Loading mfplat.dll...');
+      _mfplat = DynamicLibrary.open('mfplat.dll');
+
+      debugPrint('Looking up MFStartup...');
+      _mfStartup =
+          _mfplat!.lookupFunction<MFStartupNative, MFStartupDart>('MFStartup');
+      debugPrint('Looking up MFShutdown...');
+      _mfShutdown = _mfplat!
+          .lookupFunction<MFShutdownNative, MFShutdownDart>('MFShutdown');
+    } catch (e, stackTrace) {
+      debugPrint('Failed to initialize Windows Media Foundation: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
+    }
+  }
 
   /// Whether the camera system is initialized
   bool get isInitialized => _isInitialized;
@@ -134,213 +47,200 @@ class WMFCamera {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    final hr = _mfStartup(mfVersion, 0);
-    if (win32.FAILED(hr)) {
-      throw win32.WindowsException(hr);
+    try {
+      _initializeLibraries();
+      debugPrint('Calling MFStartup...');
+      final hr = _mfStartup!(mfVersion, 0);
+      if (win32.FAILED(hr)) {
+        final error = win32.WindowsException(hr);
+        debugPrint('MFStartup failed with error: $error');
+        throw error;
+      }
+      _isInitialized = true;
+      debugPrint('WMF initialization successful');
+    } catch (e, stackTrace) {
+      debugPrint('Failed to initialize camera: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
     }
-    _isInitialized = true;
   }
 
-  static Future<List<String>> enumerateDevices() async {
-    final hr = _mfStartup(mfVersion, 0);
-    if (win32.FAILED(hr)) {
-      throw win32.WindowsException(hr);
+  Future<List<String>> enumerateDevices() async {
+    if (!_isInitialized) {
+      debugPrint('Initializing before device enumeration...');
+      await initialize();
     }
 
+    final devices = <String>[];
+
     try {
-      final devices = <String>[];
-      final ppDevices = calloc<Pointer<Pointer<Void>>>();
-      final pCount = calloc<Uint32>();
+      debugPrint('Enumerating video capture devices...');
+      final hr = win32.CoInitializeEx(nullptr, win32.COINIT_MULTITHREADED);
+      if (win32.FAILED(hr)) {
+        throw win32.WindowsException(hr);
+      }
 
       try {
-        final hr = _mfEnumDeviceSources(
-            mfDevSourceAttrSourceTypeVidcapGuid.cast(), ppDevices, pCount);
+        // 使用 Windows 核心 API 枚举设备
+        final hDevInfo = win32.SetupDiGetClassDevs(nullptr, win32.TEXT('USB'),
+            0, win32.DIGCF_PRESENT | win32.DIGCF_ALLCLASSES);
 
-        if (win32.FAILED(hr)) {
-          throw win32.WindowsException(hr);
-        }
+        if (hDevInfo != win32.INVALID_HANDLE_VALUE) {
+          var index = 0;
+          final devInfoData = calloc<win32.SP_DEVINFO_DATA>();
+          devInfoData.ref.cbSize = sizeOf<win32.SP_DEVINFO_DATA>();
 
-        final count = pCount.value;
-        final deviceArray = ppDevices.value;
-        final typedDeviceArray = deviceArray.cast<Pointer<IMFActivate>>();
+          while (
+              win32.SetupDiEnumDeviceInfo(hDevInfo, index, devInfoData) != 0) {
+            final buffer = calloc<Uint16>(256).cast<Utf16>();
+            final bufferSize = calloc<Uint32>();
+            bufferSize.value = 256;
 
-        for (var i = 0; i < count; i++) {
-          final device = typedDeviceArray[i];
-          final ppName = calloc<win32.PWSTR>();
-
-          try {
-            final hr = device
-                .cast<IMFAttributes>()
-                .getString(mfDevSourceAttrFriendlyName.cast(), ppName);
-
-            if (win32.SUCCEEDED(hr)) {
-              devices.add(_convertFromUtf16(ppName.cast()));
+            if (win32.SetupDiGetDeviceInstanceId(
+                    hDevInfo, devInfoData, buffer, 256, bufferSize) !=
+                0) {
+              final deviceId = buffer.toDartString();
+              if (deviceId.toLowerCase().contains('usb') &&
+                  deviceId.toLowerCase().contains('vid_')) {
+                debugPrint('Found USB device: $deviceId');
+                devices.add(deviceId);
+              }
             }
-          } finally {
-            calloc.free(ppName);
+
+            calloc.free(buffer);
+            calloc.free(bufferSize);
+            index++;
           }
+
+          calloc.free(devInfoData);
+          win32.SetupDiDestroyDeviceInfoList(hDevInfo);
         }
       } finally {
-        calloc.free(ppDevices);
-        calloc.free(pCount);
+        win32.CoUninitialize();
       }
-
-      return devices;
-    } finally {
-      _mfShutdown();
+    } catch (e, stackTrace) {
+      debugPrint('Error during device enumeration: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
     }
+
+    return devices;
   }
 
-  Future<bool> checkDeviceAvailability(int deviceIndex) async {
+  /// 获取设备状态信息
+  Future<Map<String, dynamic>> getDeviceStatus(int deviceIndex) async {
+    final status = <String, dynamic>{
+      'isConnected': false,
+      'deviceName': '',
+      'isAvailable': false,
+      'error': null,
+    };
+
+    try {
+      final devices = await enumerateDevices();
+      if (deviceIndex < 0 || deviceIndex >= devices.length) {
+        status['error'] = 'Invalid device index';
+        return status;
+      }
+
+      status['isConnected'] = true;
+      status['deviceName'] = devices[deviceIndex];
+      status['isAvailable'] = true;
+
+      // 检查设备是否已经被打开
+      if (_currentDeviceIndex == deviceIndex && _isDeviceOpen) {
+        status['isAvailable'] = true;
+      }
+    } catch (e) {
+      status['error'] = 'Failed to check device: $e';
+    }
+
+    return status;
+  }
+
+  /// 打开设备
+  Future<void> openDevice(int deviceIndex) async {
     if (!_isInitialized) {
       await initialize();
     }
 
-    final ppDevices = calloc<Pointer<Pointer<Void>>>();
-    final pCount = calloc<Uint32>();
+    final devices = await enumerateDevices();
+    if (deviceIndex < 0 || deviceIndex >= devices.length) {
+      throw Exception('Invalid device index');
+    }
+
+    // 如果已经打开了其他设备，先关闭它
+    if (_isDeviceOpen && _currentDeviceIndex != deviceIndex) {
+      await closeDevice();
+    }
+
+    // 如果已经打开了这个设备，直接返回
+    if (_isDeviceOpen && _currentDeviceIndex == deviceIndex) {
+      return;
+    }
 
     try {
-      final hr = _mfEnumDeviceSources(
-          mfDevSourceAttrSourceTypeVidcapGuid.cast(), ppDevices, pCount);
-
-      if (win32.FAILED(hr)) {
-        return false;
-      }
-
-      if (deviceIndex < 0 || deviceIndex >= pCount.value) {
-        return false;
-      }
-
-      final deviceArray = ppDevices.value;
-      final typedDeviceArray = deviceArray.cast<Pointer<IMFActivate>>();
-      final device = typedDeviceArray[deviceIndex];
-
-      final ppSource = calloc<Pointer<Void>>();
-      try {
-        final hr = _mfCreateSourceReaderFromMediaSource(
-            device.cast(), nullptr.cast(), ppSource);
-
-        if (win32.FAILED(hr)) {
-          return false;
-        }
-
-        // 释放测试用的 SourceReader
-        final reader = ppSource.cast<IMFSourceReader>();
-        final vtable = reader.cast<Pointer<IntPtr>>().value;
-        final release = (vtable + 2 * sizeOf<IntPtr>())
-            .cast<NativeFunction<Int32 Function(Pointer<Void>)>>()
-            .asFunction<int Function(Pointer<Void>)>();
-        release(reader.cast());
-
-        return true;
-      } finally {
-        calloc.free(ppSource);
-      }
-    } finally {
-      calloc.free(ppDevices);
-      calloc.free(pCount);
+      debugPrint('Opening device $deviceIndex: ${devices[deviceIndex]}');
+      // TODO: 实现实际的设备打开逻辑
+      _currentDeviceIndex = deviceIndex;
+      _isDeviceOpen = true;
+    } catch (e) {
+      debugPrint('Failed to open device: $e');
+      rethrow;
     }
   }
 
-  Future<void> startPreview(int deviceIndex) async {
-    if (_isPreviewActive) {
-      await stopPreview();
-    }
-
-    if (!_isInitialized) {
-      await initialize();
-    }
-
-    final ppDevices = calloc<Pointer<Pointer<Void>>>();
-    final pCount = calloc<Uint32>();
+  /// 关闭设备
+  Future<void> closeDevice() async {
+    if (!_isDeviceOpen) return;
 
     try {
-      final hr = _mfEnumDeviceSources(
-          mfDevSourceAttrSourceTypeVidcapGuid.cast(), ppDevices, pCount);
-
-      if (win32.FAILED(hr)) {
-        throw win32.WindowsException(hr);
-      }
-
-      if (deviceIndex < 0 || deviceIndex >= pCount.value) {
-        throw Exception('Invalid device index');
-      }
-
-      final deviceArray = ppDevices.value;
-      final typedDeviceArray = deviceArray.cast<Pointer<IMFActivate>>();
-      final device = typedDeviceArray[deviceIndex];
-
-      final ppSource = calloc<Pointer<Void>>();
-      try {
-        final hr = _mfCreateSourceReaderFromMediaSource(
-            device.cast(), nullptr.cast(), ppSource);
-
-        if (win32.FAILED(hr)) {
-          throw win32.WindowsException(hr);
-        }
-
-        _reader = ppSource.cast<IMFSourceReader>();
-        _isPreviewActive = true;
-      } finally {
-        calloc.free(ppSource);
-      }
-    } finally {
-      calloc.free(ppDevices);
-      calloc.free(pCount);
+      debugPrint('Closing device $_currentDeviceIndex');
+      // TODO: 实现实际的设备关闭逻辑
+      _currentDeviceIndex = null;
+      _isDeviceOpen = false;
+    } catch (e) {
+      debugPrint('Failed to close device: $e');
+      rethrow;
     }
   }
 
-  Future<void> stopPreview() async {
-    if (!_isPreviewActive || _reader == null) return;
-
-    final vtable = _reader!.cast<Pointer<IntPtr>>().value;
-    final release = (vtable + 2 * sizeOf<IntPtr>())
-        .cast<NativeFunction<Int32 Function(Pointer<Void>)>>()
-        .asFunction<int Function(Pointer<Void>)>();
-    release(_reader!.cast());
-
-    _reader = null;
-    _isPreviewActive = false;
-  }
-
-  Future<void> dispose() async {
-    if (_isPreviewActive) {
-      await stopPreview();
+  /// 设置亮度
+  Future<void> setBrightness(double value) async {
+    if (!_isDeviceOpen) {
+      throw Exception('No device is open');
     }
 
+    try {
+      debugPrint('Setting brightness to $value');
+      // TODO: 实现实际的亮度调节逻辑
+    } catch (e) {
+      debugPrint('Failed to set brightness: $e');
+      rethrow;
+    }
+  }
+
+  /// 设置对比度
+  Future<void> setContrast(double value) async {
+    if (!_isDeviceOpen) {
+      throw Exception('No device is open');
+    }
+
+    try {
+      debugPrint('Setting contrast to $value');
+      // TODO: 实现实际的对比度调节逻辑
+    } catch (e) {
+      debugPrint('Failed to set contrast: $e');
+      rethrow;
+    }
+  }
+
+  void dispose() {
     if (_isInitialized) {
-      _mfShutdown();
+      debugPrint('Shutting down WMF...');
+      _mfShutdown!();
       _isInitialized = false;
-    }
-  }
-
-  Future<void> setResolution(int width, int height) async {
-    if (!_isPreviewActive || _reader == null) {
-      throw Exception('Camera preview is not active');
-    }
-
-    final ppMediaType = calloc<Pointer<Void>>();
-    try {
-      var hr = _mfCreateMediaType(ppMediaType);
-      if (win32.FAILED(hr)) {
-        throw win32.WindowsException(hr);
-      }
-
-      final mediaType = ppMediaType.cast<IMFMediaType>();
-      hr = mediaType
-          .cast<IMFAttributes>()
-          .setUINT64(mfMtFrameSizeGuid.cast(), (width << 32) | height);
-
-      if (win32.FAILED(hr)) {
-        throw win32.WindowsException(hr);
-      }
-
-      hr = _reader!.setCurrentMediaType(0, nullptr.cast(), mediaType);
-      if (win32.FAILED(hr)) {
-        throw win32.WindowsException(hr);
-      }
-    } finally {
-      calloc.free(ppMediaType);
+      debugPrint('WMF shutdown complete');
     }
   }
 }

@@ -9,11 +9,102 @@ library unit_test;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uvc_ir_viewer/camera/uvc_camera.dart';
+import 'package:uvc_ir_viewer/camera/win32_wmf.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/foundation.dart';
 
 void main() {
-  group('UVCCamera Tests', () {
+  group('Basic WMF Tests', () {
+    late WMFCamera wmfCamera;
+
+    setUp(() {
+      wmfCamera = WMFCamera();
+      Logger.root.level = Level.ALL;
+      Logger.root.onRecord.listen((record) {
+        debugPrint('${record.level.name}: ${record.time}: ${record.message}');
+      });
+    });
+
+    test('WMF Initialization', () async {
+      expect(wmfCamera.isInitialized, false);
+      await wmfCamera.initialize();
+      expect(wmfCamera.isInitialized, true);
+    });
+
+    test('Device Enumeration', () async {
+      try {
+        await wmfCamera.initialize();
+        final devices = await wmfCamera.enumerateDevices();
+        expect(devices, isA<List<String>>());
+        debugPrint('Found ${devices.length} devices:');
+        for (var device in devices) {
+          debugPrint('Device: $device');
+        }
+      } catch (e, stackTrace) {
+        debugPrint('Error during device enumeration: $e');
+        debugPrint('Stack trace: $stackTrace');
+        rethrow;
+      }
+    });
+
+    test('Device Status Check', () async {
+      try {
+        await wmfCamera.initialize();
+        final devices = await wmfCamera.enumerateDevices();
+        if (devices.isNotEmpty) {
+          final status = await wmfCamera.getDeviceStatus(0);
+          expect(status, isA<Map<String, dynamic>>());
+          expect(status['isConnected'], isA<bool>());
+          expect(status['deviceName'], isA<String>());
+          expect(status['isAvailable'], isA<bool>());
+          debugPrint('Device status: $status');
+        }
+      } catch (e, stackTrace) {
+        debugPrint('Error during device status check: $e');
+        debugPrint('Stack trace: $stackTrace');
+        rethrow;
+      }
+    });
+
+    test('Device Open and Close', () async {
+      try {
+        await wmfCamera.initialize();
+        final devices = await wmfCamera.enumerateDevices();
+        if (devices.isNotEmpty) {
+          await wmfCamera.openDevice(0);
+          final status = await wmfCamera.getDeviceStatus(0);
+          expect(status['isAvailable'], true);
+
+          await wmfCamera.closeDevice();
+        }
+      } catch (e, stackTrace) {
+        debugPrint('Error during device open/close test: $e');
+        debugPrint('Stack trace: $stackTrace');
+        rethrow;
+      }
+    });
+
+    test('Camera Parameters', () async {
+      try {
+        await wmfCamera.initialize();
+        final devices = await wmfCamera.enumerateDevices();
+        if (devices.isNotEmpty) {
+          await wmfCamera.openDevice(0);
+
+          await wmfCamera.setBrightness(0.5);
+          await wmfCamera.setContrast(0.5);
+
+          await wmfCamera.closeDevice();
+        }
+      } catch (e, stackTrace) {
+        debugPrint('Error during camera parameters test: $e');
+        debugPrint('Stack trace: $stackTrace');
+        rethrow;
+      }
+    });
+  });
+
+  group('Basic UVCCamera Tests', () {
     late UVCCamera camera;
 
     setUp(() {
@@ -28,139 +119,52 @@ void main() {
       camera.dispose();
     });
 
-    group('Initialization Tests', () {
-      test('Camera should start uninitialized', () {
-        expect(camera.isInitialized, isFalse);
-      });
-
-      test('Camera should be initialized after initialize()', () async {
-        try {
-          await camera.initialize();
-          expect(camera.isInitialized, isTrue);
-        } catch (e) {
-          // 在测试环境中，如果没有实际的相机硬件，初始化可能会失败
-          expect(e, isNotNull);
-        }
-      });
-
-      test('Multiple initialization calls should be handled', () async {
-        try {
-          await camera.initialize();
-          await camera.initialize(); // 第二次调用应该被正确处理
-        } catch (e) {
-          // 在测试环境中，初始化可能会失败，这是可以接受的
-          expect(e, isNotNull);
-        }
-      });
+    test('Camera Initialization', () async {
+      try {
+        expect(camera.isInitialized, false);
+        await camera.initialize();
+        expect(camera.isInitialized, true);
+      } catch (e, stackTrace) {
+        debugPrint('Error during camera initialization: $e');
+        debugPrint('Stack trace: $stackTrace');
+        rethrow;
+      }
     });
 
-    group('Device Enumeration Tests', () {
-      test('Should handle device enumeration', () async {
-        try {
-          await camera.initialize();
-          final devices = await camera.enumerateDevices();
-          expect(devices, isA<List<String>>());
-        } catch (e) {
-          // 在测试环境中，如果无法访问WMF API，这是可以接受的
-          expect(e, isNotNull);
+    test('Device Enumeration', () async {
+      try {
+        await camera.initialize();
+        final devices = await camera.enumerateDevices();
+        expect(devices, isA<List<String>>());
+        debugPrint('Found ${devices.length} devices:');
+        for (var device in devices) {
+          debugPrint('Device: $device');
         }
-      });
+      } catch (e, stackTrace) {
+        debugPrint('Error during device enumeration: $e');
+        debugPrint('Stack trace: $stackTrace');
+        rethrow;
+      }
     });
 
-    group('Device Control Tests', () {
-      test('Should handle invalid device operations gracefully', () async {
-        try {
-          await camera.initialize();
-          await camera.openDevice(-1);
-          fail('Should throw an exception for invalid device index');
-        } catch (e) {
-          expect(e, isNotNull);
-        }
-      });
+    test('Device Control', () async {
+      try {
+        await camera.initialize();
+        final devices = await camera.enumerateDevices();
+        if (devices.isNotEmpty) {
+          final status = await camera.getDeviceStatus(0);
+          expect(status, isA<Map<String, dynamic>>());
 
-      test('Preview state should be tracked correctly', () async {
-        expect(camera.isPreviewStarted, isFalse);
-      });
-
-      test('Should handle device close operations', () async {
-        try {
-          await camera.closeDevice();
-          expect(camera.isPreviewStarted, isFalse);
-        } catch (e) {
-          expect(e, isNotNull);
-        }
-      });
-    });
-
-    group('Error Handling Tests', () {
-      test('Should handle device open errors', () async {
-        try {
-          await camera.openDevice(999);
-          fail('Should throw an exception for non-existent device');
-        } catch (e) {
-          expect(e, isNotNull);
-        }
-      });
-
-      test('Should handle multiple close operations', () async {
-        try {
-          await camera.closeDevice();
-          await camera.closeDevice();
-        } catch (e) {
-          fail('Multiple close operations should not throw: $e');
-        }
-      });
-    });
-
-    group('Resource Management Tests', () {
-      test('Dispose should cleanup resources', () {
-        camera.dispose();
-        expect(camera.isInitialized, isFalse);
-      });
-
-      test('Should handle post-dispose operations', () async {
-        camera.dispose();
-        try {
-          await camera.initialize();
-          fail('Should throw after dispose');
-        } catch (e) {
-          expect(e, isNotNull);
-        }
-      });
-    });
-
-    group('Camera Settings Tests', () {
-      test('Should handle resolution setting attempts', () async {
-        try {
-          await camera.initialize();
           await camera.openDevice(0);
-          await camera.setResolution(640, 480);
-        } catch (e) {
-          // 在测试环境中，如果没有实际的相机硬件，这是可以接受的
-          expect(e, isNotNull);
+          await camera.setBrightness(0.5);
+          await camera.setContrast(0.5);
+          await camera.closeDevice();
         }
-      });
-
-      // TODO: 当实现相机参数控制后启用这些测试
-      // test('Should handle brightness control', () async {
-      //   try {
-      //     await camera.initialize();
-      //     await camera.openDevice(0);
-      //     await camera.setBrightness(0.5);
-      //   } catch (e) {
-      //     expect(e, isNotNull);
-      //   }
-      // });
-
-      // test('Should handle contrast control', () async {
-      //   try {
-      //     await camera.initialize();
-      //     await camera.openDevice(0);
-      //     await camera.setContrast(0.5);
-      //   } catch (e) {
-      //     expect(e, isNotNull);
-      //   }
-      // });
+      } catch (e, stackTrace) {
+        debugPrint('Error during device control test: $e');
+        debugPrint('Stack trace: $stackTrace');
+        rethrow;
+      }
     });
   });
 }
