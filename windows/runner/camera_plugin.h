@@ -35,6 +35,7 @@ class CameraPlugin : public flutter::Plugin {
   void EnumerateDevices(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   void StartPreview(const flutter::EncodableMap *args, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   void CloseDevice(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void GetDeviceStatus(const flutter::EncodableMap *args, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   // WMF helpers
   HRESULT InitializeMediaFoundation();

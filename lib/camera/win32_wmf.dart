@@ -39,11 +39,24 @@ class WMFCamera implements CameraInterface {
 
   @override
   Future<Map<String, dynamic>> getDeviceStatus(int deviceIndex) async {
-    // Simplified status check
-    return {
-      'isConnected': true,
-      'isAvailable': true,
-    };
+    try {
+      final Map<dynamic, dynamic>? result = await _channel
+          .invokeMethod('getDeviceStatus', {'index': deviceIndex});
+      if (result != null) {
+        return result.cast<String, dynamic>();
+      }
+      return {
+        'isConnected': false,
+        'isAvailable': false,
+        'error': 'Failed to get device status',
+      };
+    } catch (e) {
+      return {
+        'isConnected': false,
+        'isAvailable': false,
+        'error': e.toString(),
+      };
+    }
   }
 
   @override

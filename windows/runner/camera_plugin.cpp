@@ -67,6 +67,9 @@ void CameraPlugin::HandleMethodCall(
     StartPreview(args, std::move(result));
   } else if (method_call.method_name().compare("closeDevice") == 0) {
     CloseDevice(std::move(result));
+  } else if (method_call.method_name().compare("getDeviceStatus") == 0) {
+    const auto *args = std::get_if<flutter::EncodableMap>(method_call.arguments());
+    GetDeviceStatus(args, std::move(result));
   } else if (method_call.method_name().compare("setBrightness") == 0) {
       result->Success();
   } else if (method_call.method_name().compare("setContrast") == 0) {
@@ -281,4 +284,77 @@ const FlutterDesktopPixelBuffer *CameraPlugin::CopyPixelBuffer(size_t width, siz
     flutter_pixel_buffer_.height = video_height_;
     
     return &flutter_pixel_buffer_;
+}
+
+void CameraPlugin::GetDeviceStatus(const flutter::EncodableMap *args, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    int index = 0;
+    if (args) {
+        auto index_it = args->find(flutter::EncodableValue("index"));
+        if (index_it != args->end()) {
+            index = std::get<int>(index_it->second);
+        }
+    }
+
+    IMFAttributes *pAttributes = nullptr;
+    IMFActivate **ppDevices = nullptr;
+    UINT32 count = 0;
+
+    HRESULT hr = MFCreateAttributes(&pAttributes, 1);
+    if (SUCCEEDED(hr)) {
+        hr = pAttributes->SetGUID(
+            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID
+        );
+    }
+
+    if (SUCCEEDED(hr)) {
+        hr = MFEnumDeviceSources(pAttributes, &ppDevices, &count);
+    }
+
+    flutter::EncodableMap statusMap;
+    
+    if (SUCCEEDED(hr)) {
+        bool isConnected = (UINT32)index < count;
+        bool isAvailable = false;
+        std::string deviceName;
+
+        if (isConnected) {
+            // Try to get the device name to verify it's still accessible
+            WCHAR *szFriendlyName = nullptr;
+            UINT32 cchName;
+            HRESULT nameHr = ppDevices[index]->GetAllocatedString(
+                MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME,
+                &szFriendlyName,
+                &cchName
+            );
+            
+            if (SUCCEEDED(nameHr) && szFriendlyName) {
+                isAvailable = true;
+                int size_needed = WideCharToMultiByte(CP_UTF8, 0, szFriendlyName, (int)cchName, nullptr, 0, nullptr, nullptr);
+                deviceName.resize(size_needed);
+                WideCharToMultiByte(CP_UTF8, 0, szFriendlyName, (int)cchName, &deviceName[0], size_needed, nullptr, nullptr);
+                CoTaskMemFree(szFriendlyName);
+            }
+        }
+
+        statusMap[flutter::EncodableValue("isConnected")] = flutter::EncodableValue(isConnected);
+        statusMap[flutter::EncodableValue("isAvailable")] = flutter::EncodableValue(isAvailable);
+        statusMap[flutter::EncodableValue("deviceCount")] = flutter::EncodableValue((int)count);
+        if (!deviceName.empty()) {
+            statusMap[flutter::EncodableValue("deviceName")] = flutter::EncodableValue(deviceName);
+        }
+
+        // Clean up device list
+        for (UINT32 i = 0; i < count; i++) {
+            SafeRelease(&ppDevices[i]);
+        }
+        CoTaskMemFree(ppDevices);
+    } else {
+        statusMap[flutter::EncodableValue("isConnected")] = flutter::EncodableValue(false);
+        statusMap[flutter::EncodableValue("isAvailable")] = flutter::EncodableValue(false);
+        statusMap[flutter::EncodableValue("error")] = flutter::EncodableValue("Failed to enumerate devices");
+    }
+
+    SafeRelease(&pAttributes);
+    result->Success(flutter::EncodableValue(statusMap));
 }
