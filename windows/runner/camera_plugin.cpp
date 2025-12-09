@@ -306,18 +306,21 @@ void CameraPlugin::ReadSampleLoop() {
                     LONG absPitch = lPitch > 0 ? lPitch : -lPitch;
                     size_t rowBytes = video_width_ * 4;
                     
-                    if (absPitch == rowBytes) {
-                        // Fast path: contiguous block
-                        memcpy(pixel_buffer_.get(), pData, expected_size);
-                    } else {
-                        // Slow path: row by row copy to remove padding
-                        uint8_t* src = pData;
-                        uint8_t* dst = pixel_buffer_.get();
-                        for (size_t y = 0; y < video_height_; y++) {
-                            memcpy(dst, src, rowBytes);
-                            dst += rowBytes; // Advance dist by exact row width
-                            src += absPitch; // Advance src by pitch (including padding)
+                    // Copy data and convert BGRA to RGBA
+                    uint8_t* src = pData;
+                    uint8_t* dst = pixel_buffer_.get();
+                    for (size_t y = 0; y < video_height_; y++) {
+                        for (size_t x = 0; x < video_width_; x++) {
+                            size_t srcIdx = x * 4;
+                            size_t dstIdx = x * 4;
+                            // BGRA -> RGBA: swap B and R
+                            dst[dstIdx + 0] = src[srcIdx + 2]; // R <- B
+                            dst[dstIdx + 1] = src[srcIdx + 1]; // G <- G
+                            dst[dstIdx + 2] = src[srcIdx + 0]; // B <- R
+                            dst[dstIdx + 3] = src[srcIdx + 3]; // A <- A
                         }
+                        dst += rowBytes;
+                        src += absPitch;
                     }
 
                     if (p2DBuffer) {

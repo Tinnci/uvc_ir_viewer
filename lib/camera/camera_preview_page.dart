@@ -31,6 +31,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
   List<CameraResolution> _supportedResolutions = [];
   CameraResolution? _selectedResolution;
   StreamSubscription<String>? _deviceChangeSubscription;
+  bool _isLoadingPreview = false;
 
   @override
   void initState() {
@@ -83,6 +84,10 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
   }
 
   Future<void> _startPreview(int deviceIndex) async {
+    if (_isLoadingPreview) return;
+
+    setState(() => _isLoadingPreview = true);
+
     try {
       final status = await _camera.getDeviceStatus(deviceIndex);
       if (!status['isConnected'] || !status['isAvailable']) {
@@ -118,6 +123,10 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
         setState(() {
           _error = e.toString();
         });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingPreview = false);
       }
     }
   }
@@ -373,6 +382,23 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                 )
               : const CircularProgressIndicator(),
         ),
+        // Loading overlay
+        if (_isLoadingPreview)
+          Container(
+            color: Colors.black54,
+            child: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Colors.white),
+                  SizedBox(height: 16),
+                  Text('Loading camera...',
+                      style: TextStyle(color: Colors.white70)),
+                ],
+              ),
+            ),
+          ),
+        // Disconnected overlay
         if (_selectedDeviceStatus != null &&
             (!_selectedDeviceStatus!['isConnected'] ||
                 !_selectedDeviceStatus!['isAvailable']))
