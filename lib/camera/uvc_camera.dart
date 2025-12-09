@@ -1,65 +1,59 @@
+import 'dart:io';
+import 'dart:async';
+import 'camera_interface.dart';
 import 'win32_wmf.dart';
+import 'android_uvc.dart';
 
-class UVCCamera {
-  final WMFCamera _camera = WMFCamera();
-  bool _isInitialized = false;
+class UVCCamera implements CameraInterface {
+  late final CameraInterface _impl;
+  bool _isCreated = false;
 
-  /// Whether the camera is initialized
-  bool get isInitialized => _isInitialized;
-
-  Future<void> initialize() async {
-    if (_isInitialized) return;
-    await _camera.initialize();
-    _isInitialized = true;
-  }
-
-  Future<List<String>> enumerateDevices() async {
-    if (!_isInitialized) {
-      await initialize();
+  UVCCamera() {
+    if (Platform.isWindows) {
+      _impl = WMFCamera();
+    } else if (Platform.isAndroid) {
+      _impl = AndroidUVCCamera();
+    } else {
+      throw UnsupportedError('Platform not supported');
     }
-    return _camera.enumerateDevices();
+    _isCreated = true;
   }
 
-  /// 获取设备状态信息
-  Future<Map<String, dynamic>> getDeviceStatus(int deviceIndex) async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    return _camera.getDeviceStatus(deviceIndex);
-  }
+  @override
+  Stream<CameraFrame> get frameStream => _impl.frameStream;
 
-  /// 打开设备
-  Future<void> openDevice(int deviceIndex) async {
-    if (!_isInitialized) {
-      await initialize();
-    }
-    await _camera.openDevice(deviceIndex);
-  }
+  @override
+  bool get isInitialized => _impl.isInitialized;
 
-  /// 关闭设备
-  Future<void> closeDevice() async {
-    if (!_isInitialized) return;
-    await _camera.closeDevice();
-  }
+  @override
+  Future<void> initialize() => _impl.initialize();
 
-  /// 设置亮度
-  Future<void> setBrightness(double value) async {
-    if (!_isInitialized) {
-      throw Exception('Camera is not initialized');
-    }
-    await _camera.setBrightness(value);
-  }
+  @override
+  Future<List<String>> enumerateDevices() => _impl.enumerateDevices();
 
-  /// 设置对比度
-  Future<void> setContrast(double value) async {
-    if (!_isInitialized) {
-      throw Exception('Camera is not initialized');
-    }
-    await _camera.setContrast(value);
-  }
+  @override
+  Future<int?> getTextureId() => _impl.getTextureId();
 
+  @override
+  Future<Map<String, dynamic>> getDeviceStatus(int deviceIndex) =>
+      _impl.getDeviceStatus(deviceIndex);
+
+  @override
+  Future<void> openDevice(int deviceIndex) => _impl.openDevice(deviceIndex);
+
+  @override
+  Future<void> closeDevice() => _impl.closeDevice();
+
+  @override
+  Future<void> setBrightness(double value) => _impl.setBrightness(value);
+
+  @override
+  Future<void> setContrast(double value) => _impl.setContrast(value);
+
+  @override
   void dispose() {
-    _camera.dispose();
-    _isInitialized = false;
+    if (_isCreated) {
+      _impl.dispose();
+    }
   }
 }

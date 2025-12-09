@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'dart:async';
 import 'uvc_camera.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:uvc_ir_viewer/l10n/app_localizations.dart';
 
 class CameraPreviewPage extends StatefulWidget {
   const CameraPreviewPage({super.key});
@@ -23,6 +23,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
   bool _isSettingsOpen = false;
   Timer? _statusCheckTimer;
   Map<String, dynamic>? _selectedDeviceStatus;
+  int? _textureId;
 
   @override
   void initState() {
@@ -55,8 +56,9 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
 
   void _startStatusCheck() {
     _statusCheckTimer?.cancel();
-    _statusCheckTimer =
-        Timer.periodic(const Duration(seconds: 2), (timer) async {
+    _statusCheckTimer = Timer.periodic(const Duration(seconds: 2), (
+      timer,
+    ) async {
       if (_selectedDeviceIndex != null) {
         final status = await _camera.getDeviceStatus(_selectedDeviceIndex!);
         if (mounted) {
@@ -80,10 +82,13 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
       }
 
       await _camera.openDevice(deviceIndex);
+      final textureId = await _camera.getTextureId();
+
       if (mounted) {
         setState(() {
           _selectedDeviceIndex = deviceIndex;
           _selectedDeviceStatus = status;
+          _textureId = textureId;
           _error = null;
         });
       }
@@ -103,6 +108,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
       if (mounted) {
         setState(() {
           _selectedDeviceIndex = null;
+          _textureId = null;
         });
       }
     } catch (e) {
@@ -174,9 +180,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                 const SizedBox(
                   width: 48,
                   height: 48,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 3),
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -200,17 +204,13 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: Colors.red,
-                ),
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
                 const SizedBox(height: 24),
                 Text(
                   _error!,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.red,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: Colors.red),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -253,9 +253,9 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                 const SizedBox(height: 24),
                 Text(
                   l10n.cameraNotInitialized,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.orange,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(color: Colors.orange),
                 ),
               ],
             ),
@@ -302,10 +302,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
 
     return Row(
       children: [
-        Expanded(
-          flex: 3,
-          child: _buildPreviewArea(context),
-        ),
+        Expanded(flex: 3, child: _buildPreviewArea(context)),
         AnimatedSize(
           duration: const Duration(milliseconds: 200),
           child: SizedBox(
@@ -336,9 +333,9 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
             children: [
               Text(
                 l10n.selectDevice,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
               Expanded(
@@ -396,8 +393,9 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                                     if (error != null) {
                                       return Text(
                                         error.toString(),
-                                        style:
-                                            const TextStyle(color: Colors.red),
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                        ),
                                       );
                                     }
 
@@ -452,10 +450,15 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                 Container(
                   color: Colors.black,
                   child: Center(
-                    child: Text(
-                      l10n.previewArea,
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    child: _textureId != null
+                        ? AspectRatio(
+                            aspectRatio: 640 / 480, // 假设默认比例，后续可从metadata获取
+                            child: Texture(textureId: _textureId!),
+                          )
+                        : Text(
+                            l10n.previewArea,
+                            style: const TextStyle(color: Colors.white),
+                          ),
                   ),
                 ),
                 if (_selectedDeviceStatus != null &&

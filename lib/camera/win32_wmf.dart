@@ -1,7 +1,9 @@
 import 'dart:ffi';
+import 'dart:async';
 import 'package:ffi/ffi.dart';
 import 'package:win32/win32.dart' as win32;
 import 'package:flutter/foundation.dart';
+import 'camera_interface.dart';
 
 // Windows Media Foundation function types
 typedef MFStartupNative = Int32 Function(Int32 version, Int32 flags);
@@ -13,13 +15,17 @@ typedef MFShutdownDart = int Function();
 // Define missing constants
 const int mfVersion = 0x00020070;
 
-class WMFCamera {
+class WMFCamera implements CameraInterface {
+  final _frameStreamController = StreamController<CameraFrame>.broadcast();
   bool _isInitialized = false;
   static DynamicLibrary? _mfplat;
   static Function? _mfStartup;
   static Function? _mfShutdown;
   int? _currentDeviceIndex;
   bool _isDeviceOpen = false;
+
+  @override
+  Stream<CameraFrame> get frameStream => _frameStreamController.stream;
 
   static void _initializeLibraries() {
     if (_mfplat != null) return;
@@ -42,8 +48,10 @@ class WMFCamera {
   }
 
   /// Whether the camera system is initialized
+  @override
   bool get isInitialized => _isInitialized;
 
+  @override
   Future<void> initialize() async {
     if (_isInitialized) return;
 
@@ -65,6 +73,7 @@ class WMFCamera {
     }
   }
 
+  @override
   Future<List<String>> enumerateDevices() async {
     if (!_isInitialized) {
       debugPrint('Initializing before device enumeration...');
@@ -75,22 +84,38 @@ class WMFCamera {
 
     try {
       debugPrint('Enumerating video capture devices...');
-      final hr =
-          win32.CoInitializeEx(nullptr, win32.COINIT.COINIT_MULTITHREADED);
+      final hr = win32.CoInitializeEx(
+        nullptr,
+        win32.COINIT_MULTITHREADED,
+      );
       if (win32.FAILED(hr)) {
         throw win32.WindowsException(hr);
       }
 
       try {
         // 使用 Windows 核心 API 枚举设备
-        const flags = win32.SETUP_DI_GET_CLASS_DEVS_FLAGS.DIGCF_PRESENT |
-            win32.SETUP_DI_GET_CLASS_DEVS_FLAGS.DIGCF_DEVICEINTERFACE;
+        const flags = win32.DIGCF_PRESENT | win32.DIGCF_DEVICEINTERFACE;
 
-        final hDevInfo = win32.SetupDiGetClassDevs(
-            nullptr,
-            win32.TEXT('USB\\Class_0E'), // USB Video Class
-            0,
-            flags);
+        final guid = calloc<win32.GUID>();
+        // KSCATEGORY_CAPTURE: {65E8773D-8F56-11D0-A3B9-00A0C9223196}
+        guid.ref.Data1 = 0x65E8773D;
+        guid.ref.Data2 = 0x8F56;
+        guid.ref.Data3 = 0x11D0;
+
+        // Manual access for Data4 due to type checking issues in recent win32 versions
+        final rawPtr = guid.cast<Uint8>();
+        rawPtr[8] = 0xA3;
+        rawPtr[9] = 0xB9;
+        rawPtr[10] = 0x00;
+        rawPtr[11] = 0xA0;
+        rawPtr[12] = 0xC9;
+        rawPtr[13] = 0x22;
+        rawPtr[14] = 0x31;
+        rawPtr[15] = 0x96;
+
+        final hDevInfo = win32.SetupDiGetClassDevs(guid, nullptr, 0, flags);
+
+        calloc.free(guid);
 
         if (hDevInfo != win32.INVALID_HANDLE_VALUE) {
           var index = 0;
@@ -134,7 +159,14 @@ class WMFCamera {
     return devices;
   }
 
+  @override
+  Future<int?> getTextureId() async {
+    // Windows implementation will be added later
+    return null;
+  }
+
   /// 获取设备状态信息
+  @override
   Future<Map<String, dynamic>> getDeviceStatus(int deviceIndex) async {
     final status = <String, dynamic>{
       'isConnected': false,
@@ -166,6 +198,7 @@ class WMFCamera {
   }
 
   /// 打开设备
+  @override
   Future<void> openDevice(int deviceIndex) async {
     if (!_isInitialized) {
       await initialize();
@@ -188,7 +221,7 @@ class WMFCamera {
 
     try {
       debugPrint('Opening device $deviceIndex: ${devices[deviceIndex]}');
-      // TODO: 实现实际的设备打开逻辑
+      // Windows specific implementation would go here (e.g. IMFMediaSource setup)
       _currentDeviceIndex = deviceIndex;
       _isDeviceOpen = true;
     } catch (e) {
@@ -198,12 +231,13 @@ class WMFCamera {
   }
 
   /// 关闭设备
+  @override
   Future<void> closeDevice() async {
     if (!_isDeviceOpen) return;
 
     try {
       debugPrint('Closing device $_currentDeviceIndex');
-      // TODO: 实现实际的设备关闭逻辑
+      // Windows specific implementation would go here
       _currentDeviceIndex = null;
       _isDeviceOpen = false;
     } catch (e) {
@@ -213,14 +247,15 @@ class WMFCamera {
   }
 
   /// 设置亮度
+  @override
   Future<void> setBrightness(double value) async {
     if (!_isDeviceOpen) {
       throw Exception('No device is open');
     }
 
     try {
-      debugPrint('Setting brightness to $value');
-      // TODO: 实现实际的亮度调节逻辑
+      debugPrint(
+          'Setting brightness to $value (Windows implementation pending)');
     } catch (e) {
       debugPrint('Failed to set brightness: $e');
       rethrow;
@@ -228,20 +263,21 @@ class WMFCamera {
   }
 
   /// 设置对比度
+  @override
   Future<void> setContrast(double value) async {
     if (!_isDeviceOpen) {
       throw Exception('No device is open');
     }
 
     try {
-      debugPrint('Setting contrast to $value');
-      // TODO: 实现实际的对比度调节逻辑
+      debugPrint('Setting contrast to $value (Windows implementation pending)');
     } catch (e) {
       debugPrint('Failed to set contrast: $e');
       rethrow;
     }
   }
 
+  @override
   void dispose() {
     if (_isInitialized) {
       debugPrint('Shutting down WMF...');
@@ -249,5 +285,6 @@ class WMFCamera {
       _isInitialized = false;
       debugPrint('WMF shutdown complete');
     }
+    _frameStreamController.close();
   }
 }
