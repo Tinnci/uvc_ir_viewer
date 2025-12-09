@@ -1,0 +1,110 @@
+Change Dir: 'C:/Users/shiso/Downloads/uvc_ir_viewer/build/windows/x64'
+
+Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" ALL_BUILD.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+适用于 .NET Framework MSBuild 版本 17.14.14+a129329f1
+生成启动时间为 2025/12/9 20:15:42。
+
+节点 1 上的项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ALL_BUILD.vcxproj”(默认目标)。
+项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ALL_BUILD.vcxproj”(1)正在节点 1 上生成“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ZERO_CHECK.vcxproj”(2) (默认目标)。
+PrepareForBuild:
+  已启用结构化输出。编译器诊断的格式设置将反映错误层次结构。有关详细信息，请参阅 https://aka.ms/cpp/structured-output。
+InitializeBuildStatus:
+  正在创建“x64\Debug\ZERO_CHECK\ZERO_CHECK.tlog\unsuccessfulbuild”，因为已指定“AlwaysCreate”。
+  正在对“x64\Debug\ZERO_CHECK\ZERO_CHECK.tlog\unsuccessfulbuild”执行 Touch 任务。
+CustomBuild:
+  所有输出均为最新。
+FinalizeBuildStatus:
+  正在删除文件“x64\Debug\ZERO_CHECK\ZERO_CHECK.tlog\unsuccessfulbuild”。
+  正在对“x64\Debug\ZERO_CHECK\ZERO_CHECK.tlog\ZERO_CHECK.lastbuildstate”执行 Touch 任务。
+已完成生成项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ZERO_CHECK.vcxproj”(默认目标)的操作。
+项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ALL_BUILD.vcxproj”(1)正在节点 1 上生成“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\flutter_wrapper_app.vcxproj”(3) (默认目标)。
+项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\flutter_wrapper_app.vcxproj”(3)正在节点 1 上生成“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\flutter_assemble.vcxproj”(4) (默认目标)。
+PrepareForBuild:
+  已启用结构化输出。编译器诊断的格式设置将反映错误层次结构。有关详细信息，请参阅 https://aka.ms/cpp/structured-output。
+InitializeBuildStatus:
+  正在创建“x64\Debug\flutter_assemble\flutter_assemble.tlog\unsuccessfulbuild”，因为已指定“AlwaysCreate”。
+  正在对“x64\Debug\flutter_assemble\flutter_assemble.tlog\unsuccessfulbuild”执行 Touch 任务。
+CustomBuild:
+  “‘C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\CMakeFiles\bd62b1a8c868817e032619b9b75f7ed3\flutter_assemble.rule’的生成依赖于由‘C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\CMakeFiles\e283eec4b16f55c6dcd37ac1bab5eb4e\flutter_windows.dll.rule’的生成所产生的‘C:\USERS\SHISO\DOWNLOADS\UVC_IR_VIEWER\WINDOWS\FLUTTER\EPHEMERAL\FLUTTER_WINDOWS.DLL’。无法并行生成项。”
+  Generating C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/flutter_windows.dll, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/flutter_export.h, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/flutter_windows.h, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/flutter_messenger.h, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/flutter_plugin_registrar.h, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/flutter_texture_registrar.h, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/cpp_client_wrapper/core_implementations.cc, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/cpp_client_wrapper/standard_codec.cc, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/cpp_client_wrapper/plugin_registrar.cc, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/cpp_client_wrapper/flutter_engine.cc, C:/Users/shiso/Downloads/uvc_ir_viewer/windows/flutter/ephemeral/cpp_client_wrapper/flutter_view_controller.cc, _phony_
+  Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+FinalizeBuildStatus:
+  正在删除文件“x64\Debug\flutter_assemble\flutter_assemble.tlog\unsuccessfulbuild”。
+  正在对“x64\Debug\flutter_assemble\flutter_assemble.tlog\flutter_assemble.lastbuildstate”执行 Touch 任务。
+已完成生成项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\flutter_assemble.vcxproj”(默认目标)的操作。
+PrepareForBuild:
+  已启用结构化输出。编译器诊断的格式设置将反映错误层次结构。有关详细信息，请参阅 https://aka.ms/cpp/structured-output。
+InitializeBuildStatus:
+  正在创建“flutter_wrapper_app.dir\Debug\flutter_.F352FA4D.tlog\unsuccessfulbuild”，因为已指定“AlwaysCreate”。
+  正在对“flutter_wrapper_app.dir\Debug\flutter_.F352FA4D.tlog\unsuccessfulbuild”执行 Touch 任务。
+CustomBuild:
+  所有输出均为最新。
+ClCompile:
+  所有输出均为最新。
+Lib:
+  所有输出均为最新。
+  flutter_wrapper_app.vcxproj -> C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\Debug\flutter_wrapper_app.lib
+FinalizeBuildStatus:
+  正在删除文件“flutter_wrapper_app.dir\Debug\flutter_.F352FA4D.tlog\unsuccessfulbuild”。
+  正在对“flutter_wrapper_app.dir\Debug\flutter_.F352FA4D.tlog\flutter_wrapper_app.lastbuildstate”执行 Touch 任务。
+已完成生成项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\flutter_wrapper_app.vcxproj”(默认目标)的操作。
+项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ALL_BUILD.vcxproj”(1)正在节点 1 上生成“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\flutter_wrapper_plugin.vcxproj”(5) (默认目标)。
+PrepareForBuild:
+  已启用结构化输出。编译器诊断的格式设置将反映错误层次结构。有关详细信息，请参阅 https://aka.ms/cpp/structured-output。
+InitializeBuildStatus:
+  正在创建“flutter_wrapper_plugin.dir\Debug\flutter_.EF49A4C1.tlog\unsuccessfulbuild”，因为已指定“AlwaysCreate”。
+  正在对“flutter_wrapper_plugin.dir\Debug\flutter_.EF49A4C1.tlog\unsuccessfulbuild”执行 Touch 任务。
+CustomBuild:
+  所有输出均为最新。
+ClCompile:
+  所有输出均为最新。
+Lib:
+  所有输出均为最新。
+  flutter_wrapper_plugin.vcxproj -> C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\Debug\flutter_wrapper_plugin.lib
+FinalizeBuildStatus:
+  正在删除文件“flutter_wrapper_plugin.dir\Debug\flutter_.EF49A4C1.tlog\unsuccessfulbuild”。
+  正在对“flutter_wrapper_plugin.dir\Debug\flutter_.EF49A4C1.tlog\flutter_wrapper_plugin.lastbuildstate”执行 Touch 任务。
+已完成生成项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\flutter\flutter_wrapper_plugin.vcxproj”(默认目标)的操作。
+项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ALL_BUILD.vcxproj”(1)正在节点 1 上生成“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj”(6) (默认目标)。
+PrepareForBuild:
+  已启用结构化输出。编译器诊断的格式设置将反映错误层次结构。有关详细信息，请参阅 https://aka.ms/cpp/structured-output。
+InitializeBuildStatus:
+  正在对“uvc_ir_viewer.dir\Debug\uvc_ir_viewer.tlog\unsuccessfulbuild”执行 Touch 任务。
+CustomBuild:
+  所有输出均为最新。
+ClCompile:
+  所有输出均为最新。
+ResourceCompile:
+  所有输出均为最新。
+Link:
+  C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\HostX64\x64\link.exe /ERRORREPORT:QUEUE /OUT:"C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\Debug\uvc_ir_viewer.exe" /INCREMENTAL /ILK:"uvc_ir_viewer.dir\Debug\uvc_ir_viewer.ilk" /NOLOGO ..\flutter\Debug\flutter_wrapper_app.lib dwmapi.lib mf.lib mfplat.lib mfreadwrite.lib mfuuid.lib shlwapi.lib C:\Users\shiso\Downloads\uvc_ir_viewer\windows\flutter\ephemeral\flutter_windows.dll.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /manifestinput:C:\Users\shiso\Downloads\uvc_ir_viewer\windows\runner\runner.exe.manifest /DEBUG /PDB:"C:/Users/shiso/Downloads/uvc_ir_viewer/build/windows/x64/runner/Debug/uvc_ir_viewer.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:/Users/shiso/Downloads/uvc_ir_viewer/build/windows/x64/runner/Debug/uvc_ir_viewer.lib" /MACHINE:X64  /machine:x64 uvc_ir_viewer.dir\Debug\Runner.res
+  uvc_ir_viewer.dir\Debug\flutter_window.obj
+  uvc_ir_viewer.dir\Debug\main.obj
+  uvc_ir_viewer.dir\Debug\utils.obj
+  uvc_ir_viewer.dir\Debug\win32_window.obj
+  uvc_ir_viewer.dir\Debug\camera_plugin.obj
+  uvc_ir_viewer.dir\Debug\generated_plugin_registrant.obj
+flutter_window.obj : error LNK2019: 无法解析的外部符号 "public: __cdecl flutter::PluginRegistrar::PluginRegistrar(struct FlutterDesktopPluginRegistrar *)" (??0PluginRegistrar@flutter@@QEAA@PEAUFlutterDesktopPluginRegistrar@@@Z)，函数 "public: __cdecl flutter::PluginRegistrarWindows::PluginRegistrarWindows(struct FlutterDesktopPluginRegistrar *)" (??0PluginRegistrarWindows@flutter@@QEAA@PEAUFlutterDesktopPluginRegistrar@@@Z) 中引用了该符号 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+flutter_window.obj : error LNK2019: 无法解析的外部符号 "public: virtual __cdecl flutter::PluginRegistrar::~PluginRegistrar(void)" (??1PluginRegistrar@flutter@@UEAA@XZ)，函数 "int `public: __cdecl flutter::PluginRegistrarWindows::PluginRegistrarWindows(struct FlutterDesktopPluginRegistrar *)'::`1'::dtor$0" (?dtor$0@?0???0PluginRegistrarWindows@flutter@@QEAA@PEAUFlutterDesktopPluginRegistrar@@@Z@4HA) 中引用了该符号 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+flutter_window.obj : error LNK2019: 无法解析的外部符号 "protected: void __cdecl flutter::PluginRegistrar::ClearPlugins(void)" (?ClearPlugins@PluginRegistrar@flutter@@IEAAXXZ)，函数 "public: virtual __cdecl flutter::PluginRegistrarWindows::~PluginRegistrarWindows(void)" (??1PluginRegistrarWindows@flutter@@UEAA@XZ) 中引用了该符号 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+camera_plugin.obj : error LNK2019: 无法解析的外部符号 "public: void __cdecl flutter::PluginRegistrar::AddPlugin(class std::unique_ptr<class flutter::Plugin,struct std::default_delete<class flutter::Plugin> >)" (?AddPlugin@PluginRegistrar@flutter@@QEAAXV?$unique_ptr@VPlugin@flutter@@U?$default_delete@VPlugin@flutter@@@std@@@std@@@Z)，函数 "public: static void __cdecl CameraPlugin::RegisterWithRegistrar(class flutter::PluginRegistrarWindows *)" (?RegisterWithRegistrar@CameraPlugin@@SAXPEAVPluginRegistrarWindows@flutter@@@Z) 中引用了该符号 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\Debug\uvc_ir_viewer.exe : fatal error LNK1120: 4 个无法解析的外部命令 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+已完成生成项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj”(默认目标)的操作 - 失败。
+已完成生成项目“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ALL_BUILD.vcxproj”(默认目标)的操作 - 失败。
+
+生成失败。
+
+“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\ALL_BUILD.vcxproj”(默认目标) (1) ->
+“C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj”(默认目标) (6) ->
+(Link 目标) -> 
+  flutter_window.obj : error LNK2019: 无法解析的外部符号 "public: __cdecl flutter::PluginRegistrar::PluginRegistrar(struct FlutterDesktopPluginRegistrar *)" (??0PluginRegistrar@flutter@@QEAA@PEAUFlutterDesktopPluginRegistrar@@@Z)，函数 "public: __cdecl flutter::PluginRegistrarWindows::PluginRegistrarWindows(struct FlutterDesktopPluginRegistrar *)" (??0PluginRegistrarWindows@flutter@@QEAA@PEAUFlutterDesktopPluginRegistrar@@@Z) 中引用了该符号 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+  flutter_window.obj : error LNK2019: 无法解析的外部符号 "public: virtual __cdecl flutter::PluginRegistrar::~PluginRegistrar(void)" (??1PluginRegistrar@flutter@@UEAA@XZ)，函数 "int `public: __cdecl flutter::PluginRegistrarWindows::PluginRegistrarWindows(struct FlutterDesktopPluginRegistrar *)'::`1'::dtor$0" (?dtor$0@?0???0PluginRegistrarWindows@flutter@@QEAA@PEAUFlutterDesktopPluginRegistrar@@@Z@4HA) 中引用了该符号 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+  flutter_window.obj : error LNK2019: 无法解析的外部符号 "protected: void __cdecl flutter::PluginRegistrar::ClearPlugins(void)" (?ClearPlugins@PluginRegistrar@flutter@@IEAAXXZ)，函数 "public: virtual __cdecl flutter::PluginRegistrarWindows::~PluginRegistrarWindows(void)" (??1PluginRegistrarWindows@flutter@@UEAA@XZ) 中引用了该符号 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+  camera_plugin.obj : error LNK2019: 无法解析的外部符号 "public: void __cdecl flutter::PluginRegistrar::AddPlugin(class std::unique_ptr<class flutter::Plugin,struct std::default_delete<class flutter::Plugin> >)" (?AddPlugin@PluginRegistrar@flutter@@QEAAXV?$unique_ptr@VPlugin@flutter@@U?$default_delete@VPlugin@flutter@@@std@@@std@@@Z)，函数 "public: static void __cdecl CameraPlugin::RegisterWithRegistrar(class flutter::PluginRegistrarWindows *)" (?RegisterWithRegistrar@CameraPlugin@@SAXPEAVPluginRegistrarWindows@flutter@@@Z) 中引用了该符号 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+  C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\Debug\uvc_ir_viewer.exe : fatal error LNK1120: 4 个无法解析的外部命令 [C:\Users\shiso\Downloads\uvc_ir_viewer\build\windows\x64\runner\uvc_ir_viewer.vcxproj]
+
+    0 个警告
+    5 个错误
+
+已用时间 00:00:13.45
+

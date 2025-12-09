@@ -18,41 +18,37 @@
 template <class T> void SafeRelease(T **ppT) {
     if (*ppT) {
         (*ppT)->Release();
-        *ppT = NULL;
+        *ppT = nullptr;
     }
 }
 
 void CameraPlugin::RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar) {
+  auto plugin = std::make_unique<CameraPlugin>(registrar);
+
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "com.example.uvc_viewer/camera",
+          registrar->messenger(), 
+          "com.example.uvc_viewer/camera",
           &flutter::StandardMethodCodec::GetInstance());
 
-  auto plugin = std::make_unique<CameraPlugin>(registrar->texture_registrar());
-
   channel->SetMethodCallHandler(
-      [plugin_pointer = plugin.get()](const auto &call, auto result) {
-        plugin_pointer->HandleMethodCall(call, std::move(result));
+      [plugin_ptr = plugin.get()](const auto &call, auto result) {
+        plugin_ptr->HandleMethodCall(call, std::move(result));
       });
 
   registrar->AddPlugin(std::move(plugin));
 }
 
-CameraPlugin::CameraPlugin(flutter::TextureRegistrar *texture_registrar)
-    : texture_registrar_(texture_registrar) {
+CameraPlugin::CameraPlugin(flutter::PluginRegistrarWindows *registrar)
+    : registrar_(registrar), 
+      texture_registrar_(registrar->texture_registrar()) {
     InitializeMediaFoundation();
-    flutter_pixel_buffer_ = std::make_unique<FlutterDesktopPixelBuffer>();
-    flutter_pixel_buffer_->width = 0;
-    flutter_pixel_buffer_->height = 0;
-    flutter_pixel_buffer_->buffer = nullptr;
-    flutter_pixel_buffer_->release_callback = nullptr;
+    memset(&flutter_pixel_buffer_, 0, sizeof(flutter_pixel_buffer_));
 }
 
 CameraPlugin::~CameraPlugin() {
-    if (is_reading_) {
-        is_reading_ = false;
-        // Wait for thread join if we had one (simplified)
-    }
+    is_reading_ = false;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     CloseDevice(nullptr);
     MFShutdown();
 }
@@ -72,10 +68,8 @@ void CameraPlugin::HandleMethodCall(
   } else if (method_call.method_name().compare("closeDevice") == 0) {
     CloseDevice(std::move(result));
   } else if (method_call.method_name().compare("setBrightness") == 0) {
-      // TODO: Implement
       result->Success();
   } else if (method_call.method_name().compare("setContrast") == 0) {
-      // TODO: Implement
       result->Success();
   } else {
     result->NotImplemented();
@@ -83,8 +77,8 @@ void CameraPlugin::HandleMethodCall(
 }
 
 void CameraPlugin::EnumerateDevices(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-    IMFAttributes *pAttributes = NULL;
-    IMFActivate **ppDevices = NULL;
+    IMFAttributes *pAttributes = nullptr;
+    IMFActivate **ppDevices = nullptr;
     UINT32 count = 0;
 
     HRESULT hr = MFCreateAttributes(&pAttributes, 1);
@@ -102,7 +96,7 @@ void CameraPlugin::EnumerateDevices(std::unique_ptr<flutter::MethodResult<flutte
     if (SUCCEEDED(hr)) {
         flutter::EncodableList devices;
         for (UINT32 i = 0; i < count; i++) {
-            WCHAR *szFriendlyName = NULL;
+            WCHAR *szFriendlyName = nullptr;
             UINT32 cchName;
             hr = ppDevices[i]->GetAllocatedString(
                 MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME,
@@ -110,13 +104,13 @@ void CameraPlugin::EnumerateDevices(std::unique_ptr<flutter::MethodResult<flutte
                 &cchName
             );
 
-            if (SUCCEEDED(hr)) {
-                int size_needed = WideCharToMultiByte(CP_UTF8, 0, szFriendlyName, (int)cchName, NULL, 0, NULL, NULL);
+            if (SUCCEEDED(hr) && szFriendlyName) {
+                int size_needed = WideCharToMultiByte(CP_UTF8, 0, szFriendlyName, (int)cchName, nullptr, 0, nullptr, nullptr);
                 std::string strTo(size_needed, 0);
-                WideCharToMultiByte(CP_UTF8, 0, szFriendlyName, (int)cchName, &strTo[0], size_needed, NULL, NULL);
+                WideCharToMultiByte(CP_UTF8, 0, szFriendlyName, (int)cchName, &strTo[0], size_needed, nullptr, nullptr);
                 devices.push_back(flutter::EncodableValue(strTo));
+                CoTaskMemFree(szFriendlyName);
             }
-            CoTaskMemFree(szFriendlyName);
             SafeRelease(&ppDevices[i]);
         }
         CoTaskMemFree(ppDevices);
@@ -137,7 +131,7 @@ void CameraPlugin::StartPreview(const flutter::EncodableMap *args, std::unique_p
         }
     }
 
-    CloseDevice(nullptr); // Close existing first
+    CloseDevice(nullptr);
 
     HRESULT hr = OpenDevice(index);
     if(FAILED(hr)) {
@@ -145,9 +139,13 @@ void CameraPlugin::StartPreview(const flutter::EncodableMap *args, std::unique_p
         return;
     }
 
-    // Register texture
-    flutter::TextureVariant* texture = new flutter::TextureVariant(flutter::PixelBufferTexture(this));
-    texture_id_ = texture_registrar_->RegisterTexture(texture);
+    // Create texture variant with callback
+    texture_variant_ = std::make_unique<flutter::TextureVariant>(
+        flutter::PixelBufferTexture([this](size_t width, size_t height) -> const FlutterDesktopPixelBuffer* {
+            return this->CopyPixelBuffer(width, height);
+        })
+    );
+    texture_id_ = texture_registrar_->RegisterTexture(texture_variant_.get());
     
     is_reading_ = true;
     std::thread([this]() {
@@ -158,8 +156,8 @@ void CameraPlugin::StartPreview(const flutter::EncodableMap *args, std::unique_p
 }
 
 HRESULT CameraPlugin::OpenDevice(int index) {
-    IMFAttributes *pAttributes = NULL;
-    IMFActivate **ppDevices = NULL;
+    IMFAttributes *pAttributes = nullptr;
+    IMFActivate **ppDevices = nullptr;
     UINT32 count = 0;
     HRESULT hr = S_OK;
 
@@ -173,14 +171,14 @@ HRESULT CameraPlugin::OpenDevice(int index) {
         hr = MFEnumDeviceSources(pAttributes, &ppDevices, &count);
     }
 
-    if (SUCCEEDED(hr) && count > index) {
+    if (SUCCEEDED(hr) && (UINT32)index < count) {
         hr = ppDevices[index]->ActivateObject(IID_PPV_ARGS(&media_source_));
-    } else {
+    } else if ((UINT32)index >= count) {
         hr = E_FAIL;
     }
 
     if (SUCCEEDED(hr)) {
-        IMFAttributes *pReaderAttributes = NULL;
+        IMFAttributes *pReaderAttributes = nullptr;
         MFCreateAttributes(&pReaderAttributes, 1);
         pReaderAttributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, 1);
         
@@ -189,14 +187,12 @@ HRESULT CameraPlugin::OpenDevice(int index) {
     }
     
     if (SUCCEEDED(hr)) {
-        // Force output to RGB32 (Flutter PixelBuffer expects RGBA byte order usually, but BGRA is standard Windows)
-        // We will assume BGRA and check Flutter docs (Flutter Windows uses BGRA)
-        IMFMediaType *pType = NULL;
+        IMFMediaType *pType = nullptr;
         MFCreateMediaType(&pType);
         pType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
         pType->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_RGB32);
         
-        hr = source_reader_->SetCurrentMediaType(MF_SOURCE_READER_FIRST_VIDEO_STREAM, NULL, pType);
+        hr = source_reader_->SetCurrentMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, nullptr, pType);
         SafeRelease(&pType);
     }
 
@@ -212,11 +208,11 @@ HRESULT CameraPlugin::OpenDevice(int index) {
 
 void CameraPlugin::CloseDevice(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
     is_reading_ = false;
-    // Wait for thread to stop? For demo, we rely on atomic check loop ending
 
-    if (texture_id_ != -1) {
+    if (texture_id_ != -1 && texture_registrar_) {
         texture_registrar_->UnregisterTexture(texture_id_);
         texture_id_ = -1;
+        texture_variant_.reset();
     }
     
     SafeRelease(&source_reader_);
@@ -229,12 +225,12 @@ void CameraPlugin::CloseDevice(std::unique_ptr<flutter::MethodResult<flutter::En
 
 void CameraPlugin::ReadSampleLoop() {
     while (is_reading_ && source_reader_) {
-        IMFSample *pSample = NULL;
+        IMFSample *pSample = nullptr;
         DWORD streamIndex, flags;
         LONGLONG llTimeStamp;
         
         HRESULT hr = source_reader_->ReadSample(
-            MF_SOURCE_READER_FIRST_VIDEO_STREAM,
+            (DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM,
             0,
             &streamIndex,
             &flags,
@@ -247,22 +243,19 @@ void CameraPlugin::ReadSampleLoop() {
         }
 
         if (pSample) {
-            IMFMediaBuffer *pBuffer = NULL;
+            IMFMediaBuffer *pBuffer = nullptr;
             pSample->ConvertToContiguousBuffer(&pBuffer);
             
             if (pBuffer) {
-                BYTE *pData = NULL;
+                BYTE *pData = nullptr;
                 DWORD cbMaxLength, cbCurrentLength;
                 pBuffer->Lock(&pData, &cbMaxLength, &cbCurrentLength);
                 
-                // Update buffer
                 {
                     std::lock_guard<std::mutex> lock(mutex_);
                     if (buffer_size_ != cbCurrentLength) {
                         buffer_size_ = cbCurrentLength;
                         pixel_buffer_ = std::make_unique<uint8_t[]>(buffer_size_);
-                        // Crude assumption: resolution constant 640x480x4 for now
-                        // Should read from MediaType
                     }
                     memcpy(pixel_buffer_.get(), pData, cbCurrentLength);
                 }
@@ -270,14 +263,12 @@ void CameraPlugin::ReadSampleLoop() {
                 pBuffer->Unlock();
                 pBuffer->Release();
                 
-                // Notify Flutter
-                texture_registrar_->MarkTextureFrameAvailable(texture_id_);
+                if (texture_registrar_ && texture_id_ != -1) {
+                    texture_registrar_->MarkTextureFrameAvailable(texture_id_);
+                }
             }
             pSample->Release();
         }
-        // Small sleep to prevent tight loop if camera is slow?
-        // But ReadSample is blocking usually unless async in configured.
-        // If blocking, no sleep needed.
     }
 }
 
@@ -285,10 +276,9 @@ const FlutterDesktopPixelBuffer *CameraPlugin::CopyPixelBuffer(size_t width, siz
     std::lock_guard<std::mutex> lock(mutex_);
     if (!pixel_buffer_) return nullptr;
     
-    // Update struct
-    flutter_pixel_buffer_->buffer = pixel_buffer_.get();
-    flutter_pixel_buffer_->width = video_width_;
-    flutter_pixel_buffer_->height = video_height_;
+    flutter_pixel_buffer_.buffer = pixel_buffer_.get();
+    flutter_pixel_buffer_.width = video_width_;
+    flutter_pixel_buffer_.height = video_height_;
     
-    return flutter_pixel_buffer_.get();
+    return &flutter_pixel_buffer_;
 }

@@ -14,22 +14,22 @@
 #include <string>
 #include <memory>
 #include <mutex>
+#include <functional>
 
-class CameraPlugin : public flutter::Plugin, public flutter::Texture {
+class CameraPlugin : public flutter::Plugin {
  public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows *registrar);
 
-  CameraPlugin(flutter::TextureRegistrar *texture_registrar);
+  CameraPlugin(flutter::PluginRegistrarWindows *registrar);
   virtual ~CameraPlugin();
 
  private:
-  // Flutter methods
   void HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
-  // Texture methods
-  const FlutterDesktopPixelBuffer *CopyPixelBuffer(size_t width, size_t height) override;
+  // Texture callback
+  const FlutterDesktopPixelBuffer *CopyPixelBuffer(size_t width, size_t height);
 
   // Camera methods
   void EnumerateDevices(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
@@ -41,7 +41,9 @@ class CameraPlugin : public flutter::Plugin, public flutter::Texture {
   HRESULT OpenDevice(int index);
   void ReadSampleLoop();
 
+  flutter::PluginRegistrarWindows *registrar_;
   flutter::TextureRegistrar *texture_registrar_;
+  std::unique_ptr<flutter::TextureVariant> texture_variant_;
   int64_t texture_id_ = -1;
   
   // Camera State
@@ -51,9 +53,9 @@ class CameraPlugin : public flutter::Plugin, public flutter::Texture {
   std::mutex mutex_;
   std::unique_ptr<uint8_t[]> pixel_buffer_;
   size_t buffer_size_ = 0;
-  long video_width_ = 640;
-  long video_height_ = 480;
-  std::unique_ptr<FlutterDesktopPixelBuffer> flutter_pixel_buffer_;
+  size_t video_width_ = 640;
+  size_t video_height_ = 480;
+  FlutterDesktopPixelBuffer flutter_pixel_buffer_;
 };
 
 #endif  // CAMERA_PLUGIN_H_
