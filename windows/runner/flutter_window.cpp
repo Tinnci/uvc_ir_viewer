@@ -1,6 +1,7 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <Dbt.h>
 
 #include "flutter/generated_plugin_registrant.h"
 #include "camera_plugin.h"
@@ -32,6 +33,13 @@ bool FlutterWindow::OnCreate() {
       flutter::PluginRegistrarManager::GetInstance()
           ->GetRegistrar<flutter::PluginRegistrarWindows>(
               flutter_controller_->engine()->GetRegistrarForPlugin("CameraPlugin")));
+  
+  // Create MethodChannel for device change notifications
+  device_change_channel_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(),
+      "com.example.uvc_viewer/device_change",
+      &flutter::StandardMethodCodec::GetInstance());
+  
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -72,7 +80,20 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
+    case WM_DEVICECHANGE:
+      // Handle device arrival and removal
+      if (wparam == DBT_DEVICEARRIVAL || wparam == DBT_DEVICEREMOVECOMPLETE) {
+        // Notify Flutter about device change
+        if (device_change_channel_) {
+          device_change_channel_->InvokeMethod(
+              "onDeviceChanged",
+              std::make_unique<flutter::EncodableValue>(
+                  wparam == DBT_DEVICEARRIVAL ? "connected" : "disconnected"));
+        }
+      }
+      break;
   }
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);
 }
+

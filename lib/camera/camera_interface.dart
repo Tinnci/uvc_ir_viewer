@@ -61,5 +61,8 @@ abstract class CameraInterface {
   /// 拍照并返回图片数据
   Future<Uint8List?> capturePhoto();
 
+  /// 设备热插拔事件流 (connected/disconnected)
+  Stream<String> get onDeviceChanged;
+
   void dispose();
 }

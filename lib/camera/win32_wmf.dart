@@ -5,8 +5,11 @@ import 'camera_interface.dart';
 class WMFCamera implements CameraInterface {
   static const MethodChannel _channel =
       MethodChannel('com.example.uvc_viewer/camera');
+  static const MethodChannel _deviceChangeChannel =
+      MethodChannel('com.example.uvc_viewer/device_change');
 
   final _frameStreamController = StreamController<CameraFrame>.broadcast();
+  final _deviceChangeController = StreamController<String>.broadcast();
   bool _isInitialized = false;
   CameraResolution? _currentResolution;
   List<CameraResolution> _supportedResolutions = [];
@@ -24,6 +27,14 @@ class WMFCamera implements CameraInterface {
   Future<void> initialize() async {
     // Platform channel is always ready on Windows once registered
     _isInitialized = true;
+
+    // Listen for device change notifications from native
+    _deviceChangeChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onDeviceChanged') {
+        final String changeType = call.arguments as String? ?? 'unknown';
+        _deviceChangeController.add(changeType);
+      }
+    });
   }
 
   @override
@@ -147,7 +158,11 @@ class WMFCamera implements CameraInterface {
   }
 
   @override
+  Stream<String> get onDeviceChanged => _deviceChangeController.stream;
+
+  @override
   void dispose() {
     _frameStreamController.close();
+    _deviceChangeController.close();
   }
 }

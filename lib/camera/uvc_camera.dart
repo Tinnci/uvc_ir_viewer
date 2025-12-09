@@ -66,6 +66,9 @@ class UVCCamera implements CameraInterface {
   Future<Uint8List?> capturePhoto() => _impl.capturePhoto();
 
   @override
+  Stream<String> get onDeviceChanged => _impl.onDeviceChanged;
+
+  @override
   void dispose() {
     if (_isCreated) {
       _impl.dispose();

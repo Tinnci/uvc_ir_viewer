@@ -8,6 +8,7 @@ class AndroidUVCCamera implements CameraInterface {
   );
 
   final _frameStreamController = StreamController<CameraFrame>.broadcast();
+  final _deviceChangeController = StreamController<String>.broadcast();
   bool _isInitialized = false;
   int _deviceIndex = 0;
   CameraResolution? _currentResolution;
@@ -93,7 +94,11 @@ class AndroidUVCCamera implements CameraInterface {
   }
 
   @override
+  Stream<String> get onDeviceChanged => _deviceChangeController.stream;
+
+  @override
   void dispose() {
     _frameStreamController.close();
+    _deviceChangeController.close();
   }
 }

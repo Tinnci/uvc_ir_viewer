@@ -30,6 +30,8 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
   int? _textureId;
   bool _isCapturing = false;
   List<CameraResolution> _supportedResolutions = [];
+  CameraResolution? _selectedResolution;
+  StreamSubscription<String>? _deviceChangeSubscription;
 
   @override
   void initState() {
@@ -48,6 +50,7 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
           _error = null;
         });
         _startStatusCheck();
+        _subscribeToDeviceChanges();
       }
     } catch (e) {
       _logger.severe('Failed to initialize camera', e);
@@ -102,6 +105,11 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
         if (mounted) {
           setState(() {
             _supportedResolutions = resolutions;
+            // Set initial resolution if not already set
+            if (_selectedResolution == null && resolutions.isNotEmpty) {
+              _selectedResolution =
+                  _camera.currentResolution ?? resolutions.first;
+            }
           });
         }
       }
@@ -137,8 +145,51 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
   @override
   void dispose() {
     _statusCheckTimer?.cancel();
+    _deviceChangeSubscription?.cancel();
     _camera.dispose();
     super.dispose();
+  }
+
+  void _subscribeToDeviceChanges() {
+    _deviceChangeSubscription =
+        _camera.onDeviceChanged.listen((changeType) async {
+      _logger.info('Device changed: $changeType');
+      // Re-enumerate devices when a device is connected or disconnected
+      try {
+        final devices = await _camera.enumerateDevices();
+        if (mounted) {
+          setState(() {
+            _devices = devices;
+          });
+          // If the current device was disconnected, show error
+          if (changeType == 'disconnected' && _selectedDeviceIndex != null) {
+            final status = await _camera.getDeviceStatus(_selectedDeviceIndex!);
+            if (!status['isConnected'] || !status['isAvailable']) {
+              setState(() {
+                _error = 'Device disconnected';
+                _selectedDeviceIndex = null;
+                _textureId = null;
+              });
+            }
+          }
+          // Show snackbar notification
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(changeType == 'connected'
+                    ? 'Device connected'
+                    : 'Device disconnected'),
+                duration: const Duration(seconds: 2),
+                backgroundColor:
+                    changeType == 'connected' ? Colors.green : Colors.orange,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        _logger.severe('Failed to handle device change', e);
+      }
+    });
   }
 
   Future<void> _capturePhoto() async {
@@ -744,6 +795,45 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Resolution selector
+                  Text(
+                    'Resolution',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<CameraResolution>(
+                    value: _selectedResolution,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    hint: const Text('Select resolution'),
+                    isExpanded: true,
+                    items: _supportedResolutions.map((res) {
+                      return DropdownMenuItem<CameraResolution>(
+                        value: res,
+                        child: Text(res.displayName),
+                      );
+                    }).toList(),
+                    onChanged: _selectedDeviceStatus != null &&
+                            _selectedDeviceStatus!['isConnected'] &&
+                            _selectedDeviceStatus!['isAvailable']
+                        ? (CameraResolution? newValue) async {
+                            if (newValue != null &&
+                                newValue != _selectedResolution) {
+                              setState(() => _selectedResolution = newValue);
+                              await _camera.setResolution(newValue);
+                              // Restart preview with new resolution
+                              if (_selectedDeviceIndex != null) {
+                                await _stopPreview();
+                                await _startPreview(_selectedDeviceIndex!);
+                              }
+                            }
+                          }
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
                   Text(
                     l10n.brightness,
                     style: Theme.of(context).textTheme.titleMedium,
