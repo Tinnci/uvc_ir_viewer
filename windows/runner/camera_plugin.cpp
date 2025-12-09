@@ -203,6 +203,21 @@ HRESULT CameraPlugin::OpenDevice(int index) {
         hr = source_reader_->SetCurrentMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, nullptr, pType);
         SafeRelease(&pType);
     }
+    
+    // Get the actual media type to determine video dimensions
+    if (SUCCEEDED(hr)) {
+        IMFMediaType *pCurrentType = nullptr;
+        hr = source_reader_->GetCurrentMediaType((DWORD)MF_SOURCE_READER_FIRST_VIDEO_STREAM, &pCurrentType);
+        if (SUCCEEDED(hr) && pCurrentType) {
+            UINT32 width = 0, height = 0;
+            MFGetAttributeSize(pCurrentType, MF_MT_FRAME_SIZE, &width, &height);
+            if (width > 0 && height > 0) {
+                video_width_ = width;
+                video_height_ = height;
+            }
+            SafeRelease(&pCurrentType);
+        }
+    }
 
     // Clean up enumeration
     for (UINT32 i = 0; i < count; i++) {
@@ -252,23 +267,67 @@ void CameraPlugin::ReadSampleLoop() {
 
         if (pSample) {
             IMFMediaBuffer *pBuffer = nullptr;
-            pSample->ConvertToContiguousBuffer(&pBuffer);
+            hr = pSample->ConvertToContiguousBuffer(&pBuffer);
             
-            if (pBuffer) {
+            if (SUCCEEDED(hr) && pBuffer) {
                 BYTE *pData = nullptr;
                 DWORD cbMaxLength, cbCurrentLength;
-                pBuffer->Lock(&pData, &cbMaxLength, &cbCurrentLength);
+                LONG lPitch = 0;
                 
-                {
+                // Try to get 2D buffer interface for stride information
+                IMF2DBuffer *p2DBuffer = nullptr;
+                hr = pBuffer->QueryInterface(IID_PPV_ARGS(&p2DBuffer));
+                
+                if (SUCCEEDED(hr) && p2DBuffer) {
+                    BYTE *pScanline0 = nullptr;
+                    hr = p2DBuffer->Lock2D(&pScanline0, &lPitch);
+                    if (SUCCEEDED(hr)) {
+                        pData = pScanline0;
+                    }
+                } else {
+                    // Fallback to regular Lock
+                    hr = pBuffer->Lock(&pData, &cbMaxLength, &cbCurrentLength);
+                    // Assume default pitch if not available
+                    lPitch = static_cast<LONG>(video_width_ * 4); 
+                }
+
+                if (SUCCEEDED(hr) && pData) {
                     std::lock_guard<std::mutex> lock(mutex_);
-                    if (buffer_size_ != cbCurrentLength) {
-                        buffer_size_ = cbCurrentLength;
+                    
+                    size_t expected_size = video_width_ * video_height_ * 4;
+                    if (buffer_size_ != expected_size) {
+                        buffer_size_ = expected_size;
                         pixel_buffer_ = std::make_unique<uint8_t[]>(buffer_size_);
                     }
-                    memcpy(pixel_buffer_.get(), pData, cbCurrentLength);
+
+                    // Handle stride (pitch) mismatch
+                    // Usually pitch can be negative (bottom-up) or positive (top-down)
+                    // We need abs(pitch) for copying
+                    LONG absPitch = lPitch > 0 ? lPitch : -lPitch;
+                    size_t rowBytes = video_width_ * 4;
+                    
+                    if (absPitch == rowBytes) {
+                        // Fast path: contiguous block
+                        memcpy(pixel_buffer_.get(), pData, expected_size);
+                    } else {
+                        // Slow path: row by row copy to remove padding
+                        uint8_t* src = pData;
+                        uint8_t* dst = pixel_buffer_.get();
+                        for (size_t y = 0; y < video_height_; y++) {
+                            memcpy(dst, src, rowBytes);
+                            dst += rowBytes; // Advance dist by exact row width
+                            src += absPitch; // Advance src by pitch (including padding)
+                        }
+                    }
+
+                    if (p2DBuffer) {
+                        p2DBuffer->Unlock2D();
+                        p2DBuffer->Release();
+                    } else {
+                        pBuffer->Unlock();
+                    }
                 }
                 
-                pBuffer->Unlock();
                 pBuffer->Release();
                 
                 if (texture_registrar_ && texture_id_ != -1) {

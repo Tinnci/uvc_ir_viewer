@@ -367,7 +367,8 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
         Center(
           child: _textureId != null
               ? AspectRatio(
-                  aspectRatio: 640 / 480, // TODO: Use actual aspect ratio
+                  aspectRatio: (_selectedResolution?.width ?? 640) /
+                      (_selectedResolution?.height ?? 480),
                   child: Texture(textureId: _textureId!),
                 )
               : const CircularProgressIndicator(),
@@ -493,11 +494,12 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                     }).toList(),
                     onChanged: (CameraResolution? newValue) async {
                       if (newValue != null && newValue != _selectedResolution) {
+                        final deviceIndex = _selectedDeviceIndex;
                         setState(() => _selectedResolution = newValue);
                         await _camera.setResolution(newValue);
-                        if (_selectedDeviceIndex != null) {
+                        if (deviceIndex != null) {
                           await _stopPreview();
-                          await _startPreview(_selectedDeviceIndex!);
+                          await _startPreview(deviceIndex);
                         }
                       }
                     },
