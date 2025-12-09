@@ -8,12 +8,17 @@ class WMFCamera implements CameraInterface {
 
   final _frameStreamController = StreamController<CameraFrame>.broadcast();
   bool _isInitialized = false;
+  CameraResolution? _currentResolution;
+  List<CameraResolution> _supportedResolutions = [];
 
   @override
   Stream<CameraFrame> get frameStream => _frameStreamController.stream;
 
   @override
   bool get isInitialized => _isInitialized;
+
+  @override
+  CameraResolution? get currentResolution => _currentResolution;
 
   @override
   Future<void> initialize() async {
@@ -32,8 +37,12 @@ class WMFCamera implements CameraInterface {
 
   @override
   Future<int?> getTextureId() async {
-    final int? textureId =
-        await _channel.invokeMethod('startPreview', {'index': _deviceIndex});
+    final Map<String, dynamic> params = {'index': _deviceIndex};
+    if (_currentResolution != null) {
+      params['width'] = _currentResolution!.width;
+      params['height'] = _currentResolution!.height;
+    }
+    final int? textureId = await _channel.invokeMethod('startPreview', params);
     return textureId;
   }
 
@@ -62,6 +71,11 @@ class WMFCamera implements CameraInterface {
   @override
   Future<void> openDevice(int deviceIndex) async {
     _deviceIndex = deviceIndex;
+    // 获取支持的分辨率
+    _supportedResolutions = await getSupportedResolutions();
+    if (_supportedResolutions.isNotEmpty && _currentResolution == null) {
+      _currentResolution = _supportedResolutions.first;
+    }
   }
 
   @override
@@ -77,6 +91,59 @@ class WMFCamera implements CameraInterface {
   @override
   Future<void> setContrast(double value) async {
     await _channel.invokeMethod('setContrast', {'value': value});
+  }
+
+  @override
+  Future<List<CameraResolution>> getSupportedResolutions() async {
+    try {
+      final List<dynamic>? result = await _channel
+          .invokeMethod('getSupportedResolutions', {'index': _deviceIndex});
+      if (result != null) {
+        return result.map((item) {
+          final map = item as Map<dynamic, dynamic>;
+          return CameraResolution(
+            width: map['width'] as int,
+            height: map['height'] as int,
+            frameRate: (map['frameRate'] as int?) ?? 30,
+          );
+        }).toList();
+      }
+    } catch (e) {
+      // 如果原生层还未实现，返回默认分辨率列表
+    }
+    // 返回常见的默认分辨率
+    return [
+      CameraResolution(width: 640, height: 480, frameRate: 30),
+      CameraResolution(width: 320, height: 240, frameRate: 30),
+      CameraResolution(width: 1280, height: 720, frameRate: 30),
+    ];
+  }
+
+  @override
+  Future<void> setResolution(CameraResolution resolution) async {
+    _currentResolution = resolution;
+    // 如果正在预览，需要重新启动预览以应用新分辨率
+    try {
+      await _channel.invokeMethod('setResolution', {
+        'width': resolution.width,
+        'height': resolution.height,
+      });
+    } catch (e) {
+      // 原生层可能还未实现，忽略错误
+    }
+  }
+
+  @override
+  Future<Uint8List?> capturePhoto() async {
+    try {
+      final result = await _channel.invokeMethod('capturePhoto');
+      if (result != null) {
+        return result as Uint8List;
+      }
+    } catch (e) {
+      // 捕获失败
+    }
+    return null;
   }
 
   @override

@@ -36,6 +36,8 @@ class CameraPlugin : public flutter::Plugin {
   void StartPreview(const flutter::EncodableMap *args, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   void CloseDevice(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
   void GetDeviceStatus(const flutter::EncodableMap *args, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void GetSupportedResolutions(const flutter::EncodableMap *args, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+  void CapturePhoto(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   // WMF helpers
   HRESULT InitializeMediaFoundation();

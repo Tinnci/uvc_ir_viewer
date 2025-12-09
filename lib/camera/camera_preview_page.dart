@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
 import 'uvc_camera.dart';
+import 'camera_interface.dart';
 import 'package:uvc_ir_viewer/l10n/app_localizations.dart';
 
 class CameraPreviewPage extends StatefulWidget {
@@ -24,6 +28,8 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
   Timer? _statusCheckTimer;
   Map<String, dynamic>? _selectedDeviceStatus;
   int? _textureId;
+  bool _isCapturing = false;
+  List<CameraResolution> _supportedResolutions = [];
 
   @override
   void initState() {
@@ -91,6 +97,13 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
           _textureId = textureId;
           _error = null;
         });
+        // 获取支持的分辨率
+        final resolutions = await _camera.getSupportedResolutions();
+        if (mounted) {
+          setState(() {
+            _supportedResolutions = resolutions;
+          });
+        }
       }
     } catch (e) {
       _logger.severe('Failed to start preview', e);
@@ -126,6 +139,89 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
     _statusCheckTimer?.cancel();
     _camera.dispose();
     super.dispose();
+  }
+
+  Future<void> _capturePhoto() async {
+    if (_isCapturing) return;
+
+    setState(() => _isCapturing = true);
+
+    try {
+      final photoData = await _camera.capturePhoto();
+      if (photoData != null && photoData.isNotEmpty) {
+        // 保存到文件
+        final directory = await getApplicationDocumentsDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final filePath = '${directory.path}/capture_$timestamp.bmp';
+
+        // 创建BMP文件头（简化版，假设是BGRA格式）
+        final width = _camera.currentResolution?.width ?? 640;
+        final height = _camera.currentResolution?.height ?? 480;
+        final bmpData = _createBmpFromRgba(photoData, width, height);
+
+        final file = File(filePath);
+        await file.writeAsBytes(bmpData);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('照片已保存: $filePath'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        throw Exception('Failed to capture photo');
+      }
+    } catch (e) {
+      _logger.severe('Failed to capture photo', e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('拍照失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCapturing = false);
+      }
+    }
+  }
+
+  Uint8List _createBmpFromRgba(Uint8List rgbaData, int width, int height) {
+    // BMP文件头
+    final fileSize = 54 + rgbaData.length;
+    final bmp = ByteData(fileSize);
+
+    // BMP文件头 (14 bytes)
+    bmp.setUint8(0, 0x42); // 'B'
+    bmp.setUint8(1, 0x4D); // 'M'
+    bmp.setUint32(2, fileSize, Endian.little);
+    bmp.setUint32(6, 0, Endian.little); // Reserved
+    bmp.setUint32(10, 54, Endian.little); // Pixel data offset
+
+    // DIB头 (40 bytes)
+    bmp.setUint32(14, 40, Endian.little); // DIB header size
+    bmp.setInt32(18, width, Endian.little);
+    bmp.setInt32(22, -height, Endian.little); // 负值表示自顶向下
+    bmp.setUint16(26, 1, Endian.little); // Color planes
+    bmp.setUint16(28, 32, Endian.little); // Bits per pixel
+    bmp.setUint32(30, 0, Endian.little); // Compression (none)
+    bmp.setUint32(34, rgbaData.length, Endian.little); // Image size
+    bmp.setInt32(38, 2835, Endian.little); // Horizontal resolution
+    bmp.setInt32(42, 2835, Endian.little); // Vertical resolution
+    bmp.setUint32(46, 0, Endian.little); // Colors in palette
+    bmp.setUint32(50, 0, Endian.little); // Important colors
+
+    // 像素数据
+    final result = Uint8List(fileSize);
+    result.setRange(0, 54, bmp.buffer.asUint8List());
+    result.setRange(54, fileSize, rgbaData);
+
+    return result;
   }
 
   @override
@@ -512,6 +608,25 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
                   label: Text(l10n.stopPreview),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.red,
+                    minimumSize: const Size(120, 48),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                FilledButton.icon(
+                  onPressed: _isCapturing ? null : _capturePhoto,
+                  icon: _isCapturing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.camera_alt),
+                  label: Text(_isCapturing ? '拍摄中...' : '拍照'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green,
                     minimumSize: const Size(120, 48),
                   ),
                 ),

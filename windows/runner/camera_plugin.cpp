@@ -70,6 +70,11 @@ void CameraPlugin::HandleMethodCall(
   } else if (method_call.method_name().compare("getDeviceStatus") == 0) {
     const auto *args = std::get_if<flutter::EncodableMap>(method_call.arguments());
     GetDeviceStatus(args, std::move(result));
+  } else if (method_call.method_name().compare("getSupportedResolutions") == 0) {
+    const auto *args = std::get_if<flutter::EncodableMap>(method_call.arguments());
+    GetSupportedResolutions(args, std::move(result));
+  } else if (method_call.method_name().compare("capturePhoto") == 0) {
+    CapturePhoto(std::move(result));
   } else if (method_call.method_name().compare("setBrightness") == 0) {
       result->Success();
   } else if (method_call.method_name().compare("setContrast") == 0) {
@@ -357,4 +362,135 @@ void CameraPlugin::GetDeviceStatus(const flutter::EncodableMap *args, std::uniqu
 
     SafeRelease(&pAttributes);
     result->Success(flutter::EncodableValue(statusMap));
+}
+
+void CameraPlugin::GetSupportedResolutions(const flutter::EncodableMap *args, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    int index = 0;
+    if (args) {
+        auto index_it = args->find(flutter::EncodableValue("index"));
+        if (index_it != args->end()) {
+            index = std::get<int>(index_it->second);
+        }
+    }
+
+    IMFAttributes *pAttributes = nullptr;
+    IMFActivate **ppDevices = nullptr;
+    UINT32 count = 0;
+    flutter::EncodableList resolutions;
+
+    HRESULT hr = MFCreateAttributes(&pAttributes, 1);
+    if (SUCCEEDED(hr)) {
+        hr = pAttributes->SetGUID(
+            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID
+        );
+    }
+
+    if (SUCCEEDED(hr)) {
+        hr = MFEnumDeviceSources(pAttributes, &ppDevices, &count);
+    }
+
+    if (SUCCEEDED(hr) && (UINT32)index < count) {
+        IMFMediaSource *pSource = nullptr;
+        hr = ppDevices[index]->ActivateObject(IID_PPV_ARGS(&pSource));
+        
+        if (SUCCEEDED(hr)) {
+            IMFPresentationDescriptor *pPD = nullptr;
+            hr = pSource->CreatePresentationDescriptor(&pPD);
+            
+            if (SUCCEEDED(hr)) {
+                DWORD streamCount = 0;
+                pPD->GetStreamDescriptorCount(&streamCount);
+                
+                for (DWORD i = 0; i < streamCount; i++) {
+                    BOOL selected = FALSE;
+                    IMFStreamDescriptor *pSD = nullptr;
+                    pPD->GetStreamDescriptorByIndex(i, &selected, &pSD);
+                    
+                    if (pSD) {
+                        IMFMediaTypeHandler *pHandler = nullptr;
+                        pSD->GetMediaTypeHandler(&pHandler);
+                        
+                        if (pHandler) {
+                            DWORD typeCount = 0;
+                            pHandler->GetMediaTypeCount(&typeCount);
+                            
+                            for (DWORD j = 0; j < typeCount; j++) {
+                                IMFMediaType *pType = nullptr;
+                                pHandler->GetMediaTypeByIndex(j, &pType);
+                                
+                                if (pType) {
+                                    GUID majorType;
+                                    pType->GetMajorType(&majorType);
+                                    
+                                    if (IsEqualGUID(majorType, MFMediaType_Video)) {
+                                        UINT32 width = 0, height = 0;
+                                        MFGetAttributeSize(pType, MF_MT_FRAME_SIZE, &width, &height);
+                                        
+                                        UINT32 numerator = 0, denominator = 1;
+                                        MFGetAttributeRatio(pType, MF_MT_FRAME_RATE, &numerator, &denominator);
+                                        int frameRate = denominator > 0 ? (int)(numerator / denominator) : 30;
+                                        
+                                        if (width > 0 && height > 0) {
+                                            flutter::EncodableMap resMap;
+                                            resMap[flutter::EncodableValue("width")] = flutter::EncodableValue((int)width);
+                                            resMap[flutter::EncodableValue("height")] = flutter::EncodableValue((int)height);
+                                            resMap[flutter::EncodableValue("frameRate")] = flutter::EncodableValue(frameRate);
+                                            
+                                            // Avoid duplicates
+                                            bool exists = false;
+                                            for (const auto& r : resolutions) {
+                                                const auto& m = std::get<flutter::EncodableMap>(r);
+                                                auto w_it = m.find(flutter::EncodableValue("width"));
+                                                auto h_it = m.find(flutter::EncodableValue("height"));
+                                                if (w_it != m.end() && h_it != m.end()) {
+                                                    if (std::get<int>(w_it->second) == (int)width && 
+                                                        std::get<int>(h_it->second) == (int)height) {
+                                                        exists = true;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            if (!exists) {
+                                                resolutions.push_back(flutter::EncodableValue(resMap));
+                                            }
+                                        }
+                                    }
+                                    pType->Release();
+                                }
+                            }
+                            pHandler->Release();
+                        }
+                        pSD->Release();
+                    }
+                }
+                pPD->Release();
+            }
+            pSource->Shutdown();
+            pSource->Release();
+        }
+    }
+
+    // Clean up
+    for (UINT32 i = 0; i < count; i++) {
+        SafeRelease(&ppDevices[i]);
+    }
+    CoTaskMemFree(ppDevices);
+    SafeRelease(&pAttributes);
+
+    result->Success(flutter::EncodableValue(resolutions));
+}
+
+void CameraPlugin::CapturePhoto(std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    
+    if (!pixel_buffer_ || buffer_size_ == 0) {
+        result->Error("NO_FRAME", "No frame available to capture");
+        return;
+    }
+    
+    // Copy current frame data
+    std::vector<uint8_t> photoData(pixel_buffer_.get(), pixel_buffer_.get() + buffer_size_);
+    
+    result->Success(flutter::EncodableValue(photoData));
 }

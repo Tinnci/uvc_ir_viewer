@@ -10,12 +10,16 @@ class AndroidUVCCamera implements CameraInterface {
   final _frameStreamController = StreamController<CameraFrame>.broadcast();
   bool _isInitialized = false;
   int _deviceIndex = 0;
+  CameraResolution? _currentResolution;
 
   @override
   Stream<CameraFrame> get frameStream => _frameStreamController.stream;
 
   @override
   bool get isInitialized => _isInitialized;
+
+  @override
+  CameraResolution? get currentResolution => _currentResolution;
 
   @override
   Future<void> initialize() async {
@@ -65,6 +69,27 @@ class AndroidUVCCamera implements CameraInterface {
   @override
   Future<void> setContrast(double value) async {
     await _channel.invokeMethod('setContrast', {'value': value});
+  }
+
+  @override
+  Future<List<CameraResolution>> getSupportedResolutions() async {
+    // Android 实现待完成
+    return [
+      CameraResolution(width: 640, height: 480, frameRate: 30),
+      CameraResolution(width: 320, height: 240, frameRate: 30),
+    ];
+  }
+
+  @override
+  Future<void> setResolution(CameraResolution resolution) async {
+    _currentResolution = resolution;
+    // Android 实现待完成
+  }
+
+  @override
+  Future<Uint8List?> capturePhoto() async {
+    // Android 实现待完成
+    return null;
   }
 
   @override

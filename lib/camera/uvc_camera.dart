@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 import 'camera_interface.dart';
 import 'win32_wmf.dart';
 import 'android_uvc.dart';
@@ -26,6 +27,9 @@ class UVCCamera implements CameraInterface {
   bool get isInitialized => _impl.isInitialized;
 
   @override
+  CameraResolution? get currentResolution => _impl.currentResolution;
+
+  @override
   Future<void> initialize() => _impl.initialize();
 
   @override
@@ -49,6 +53,17 @@ class UVCCamera implements CameraInterface {
 
   @override
   Future<void> setContrast(double value) => _impl.setContrast(value);
+
+  @override
+  Future<List<CameraResolution>> getSupportedResolutions() =>
+      _impl.getSupportedResolutions();
+
+  @override
+  Future<void> setResolution(CameraResolution resolution) =>
+      _impl.setResolution(resolution);
+
+  @override
+  Future<Uint8List?> capturePhoto() => _impl.capturePhoto();
 
   @override
   void dispose() {
