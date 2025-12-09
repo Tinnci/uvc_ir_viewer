@@ -9,6 +9,7 @@ class AndroidUVCCamera implements CameraInterface {
 
   final _frameStreamController = StreamController<CameraFrame>.broadcast();
   bool _isInitialized = false;
+  int _deviceIndex = 0;
 
   @override
   Stream<CameraFrame> get frameStream => _frameStreamController.stream;
@@ -32,7 +33,8 @@ class AndroidUVCCamera implements CameraInterface {
 
   @override
   Future<int?> getTextureId() async {
-    final int? textureId = await _channel.invokeMethod('startPreview');
+    final int? textureId =
+        await _channel.invokeMethod('startPreview', {'index': _deviceIndex});
     return textureId;
   }
 
@@ -47,7 +49,7 @@ class AndroidUVCCamera implements CameraInterface {
 
   @override
   Future<void> openDevice(int deviceIndex) async {
-    await _channel.invokeMethod('openDevice', {'index': deviceIndex});
+    _deviceIndex = deviceIndex;
   }
 
   @override
