@@ -24,7 +24,6 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
   int? _selectedDeviceIndex;
   double _brightness = 0.5;
   double _contrast = 0.5;
-  bool _isSettingsOpen = false;
   Timer? _statusCheckTimer;
   Map<String, dynamic>? _selectedDeviceStatus;
   int? _textureId;
@@ -277,595 +276,307 @@ class _CameraPreviewPageState extends State<CameraPreviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          l10n.appTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        elevation: 2,
-        actions: [
-          if (_selectedDeviceIndex != null)
-            Tooltip(
-              message: l10n.cameraSettings,
-              child: IconButton(
-                icon: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    _isSettingsOpen ? Icons.settings : Icons.settings_outlined,
-                    key: ValueKey(_isSettingsOpen),
-                  ),
-                ),
-                onPressed: () =>
-                    setState(() => _isSettingsOpen = !_isSettingsOpen),
-              ),
+      body: Row(
+        children: [
+          Expanded(
+            child: Container(
+              color: Colors.black, // Dark background for camera preview
+              child: _buildPreviewContent(context),
             ),
+          ),
+          _buildSidePanel(context),
         ],
-      ),
-      body: Container(
-        color: Theme.of(context).colorScheme.surface,
-        child: _buildBody(context),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildPreviewContent(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
     if (_isInitializing) {
       return Center(
-        child: Card(
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: CircularProgressIndicator(strokeWidth: 3),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  l10n.initializingCamera,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(l10n.initializingCamera,
+                style: const TextStyle(color: Colors.white70)),
+          ],
         ),
       );
     }
 
     if (_error != null) {
       return Center(
-        child: Card(
-          margin: const EdgeInsets.all(16),
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 24),
-                Text(
-                  _error!,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: Colors.red),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _error = null;
-                      _isInitializing = true;
-                    });
-                    _initializeCamera();
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: Text(l10n.retry),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(120, 48),
-                  ),
-                ),
-              ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+            const SizedBox(height: 16),
+            Text(_error!,
+                style: const TextStyle(color: Colors.redAccent),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                setState(() {
+                  _error = null;
+                  _isInitializing = true;
+                });
+                _initializeCamera();
+              },
+              icon: const Icon(Icons.refresh),
+              label: Text(l10n.retry),
             ),
-          ),
+          ],
         ),
       );
     }
 
-    if (!_camera.isInitialized) {
+    if (_selectedDeviceIndex == null) {
+      if (_devices == null || _devices!.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.camera_alt_outlined,
+                  size: 64, color: Colors.white24),
+              const SizedBox(height: 16),
+              Text(l10n.noDevicesFound,
+                  style: const TextStyle(color: Colors.white70)),
+              const SizedBox(height: 16),
+              FilledButton.tonalIcon(
+                onPressed: _initializeCamera,
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.refresh),
+              ),
+            ],
+          ),
+        );
+      }
       return Center(
-        child: Card(
-          margin: const EdgeInsets.all(16),
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  size: 64,
-                  color: Colors.orange,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  l10n.cameraNotInitialized,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: Colors.orange),
-                ),
-              ],
-            ),
-          ),
-        ),
+        child: Text(l10n.selectDevice,
+            style: const TextStyle(color: Colors.white70, fontSize: 18)),
       );
     }
 
-    if (_devices == null || _devices!.isEmpty) {
-      return Center(
-        child: Card(
-          margin: const EdgeInsets.all(16),
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.camera_alt_outlined,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  l10n.noDevicesFound,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: _initializeCamera,
-                  icon: const Icon(Icons.refresh),
-                  label: Text(l10n.refresh),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(120, 48),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Row(
+    return Stack(
       children: [
-        Expanded(flex: 3, child: _buildPreviewArea(context)),
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          child: SizedBox(
-            width: _isSettingsOpen && _selectedDeviceIndex != null ? 300 : 0,
-            child: Card(
-              margin: const EdgeInsets.all(8),
-              elevation: 4,
-              child: _isSettingsOpen && _selectedDeviceIndex != null
-                  ? _buildSettingsPanel(context)
-                  : null,
+        Center(
+          child: _textureId != null
+              ? AspectRatio(
+                  aspectRatio: 640 / 480, // TODO: Use actual aspect ratio
+                  child: Texture(textureId: _textureId!),
+                )
+              : const CircularProgressIndicator(),
+        ),
+        if (_selectedDeviceStatus != null &&
+            (!_selectedDeviceStatus!['isConnected'] ||
+                !_selectedDeviceStatus!['isAvailable']))
+          Container(
+            color: Colors.black54,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.link_off,
+                      size: 64, color: Colors.orangeAccent),
+                  const SizedBox(height: 16),
+                  Text(
+                    _selectedDeviceStatus!['error'] ?? l10n.deviceDisconnected,
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }
 
-  Widget _buildPreviewArea(BuildContext context) {
+  Widget _buildSidePanel(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    if (_selectedDeviceIndex == null) {
-      return Card(
-        margin: const EdgeInsets.all(16),
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                l10n.selectDevice,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: _devices!.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.camera_alt_outlined,
-                              size: 64,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              l10n.noDevicesFound,
-                              style: Theme.of(context).textTheme.titleMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            FilledButton.icon(
-                              onPressed: _initializeCamera,
-                              icon: const Icon(Icons.refresh),
-                              label: Text(l10n.refresh),
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size(120, 48),
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _devices!.length,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemBuilder: (context, index) {
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 4,
-                            ),
-                            child: ListTile(
-                              leading: const Icon(Icons.camera),
-                              title: Text(_devices![index]),
-                              subtitle: FutureBuilder<Map<String, dynamic>>(
-                                future: _camera.getDeviceStatus(index),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    final status = snapshot.data!;
-                                    final isConnected =
-                                        status['isConnected'] ?? false;
-                                    final isAvailable =
-                                        status['isAvailable'] ?? false;
-                                    final error = status['error'];
+    final theme = Theme.of(context);
 
-                                    if (error != null) {
-                                      return Text(
-                                        error.toString(),
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                        ),
-                                      );
-                                    }
+    // Filter out only video devices for now, or use all if logic allows
+    final devicesList = _devices ?? [];
 
-                                    return Row(
-                                      children: [
-                                        Icon(
-                                          isConnected
-                                              ? Icons.check_circle
-                                              : Icons.error,
-                                          size: 16,
-                                          color: isConnected
-                                              ? Colors.green
-                                              : Colors.red,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          isConnected
-                                              ? (isAvailable
-                                                  ? l10n.deviceNotAvailable
-                                                  : l10n.deviceDisconnected)
-                                              : l10n.deviceDisconnected,
-                                        ),
-                                      ],
-                                    );
-                                  }
-                                  return Text(l10n.checkingDeviceStatus);
-                                },
-                              ),
-                              onTap: () => _startPreview(index),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 4,
-      child: Column(
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Container(
-                  color: Colors.black,
-                  child: Center(
-                    child: _textureId != null
-                        ? AspectRatio(
-                            aspectRatio: 640 / 480, // 假设默认比例，后续可从metadata获取
-                            child: Texture(textureId: _textureId!),
-                          )
-                        : Text(
-                            l10n.previewArea,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                  ),
-                ),
-                if (_selectedDeviceStatus != null &&
-                    (!_selectedDeviceStatus!['isConnected'] ||
-                        !_selectedDeviceStatus!['isAvailable']))
-                  Container(
-                    color: Colors.black54,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.warning_amber_rounded,
-                            size: 64,
-                            color: Colors.orange,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _selectedDeviceStatus!['error'] ?? '设备已断开连接',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            onPressed: () =>
-                                _startPreview(_selectedDeviceIndex!),
-                            icon: const Icon(Icons.refresh),
-                            label: Text(l10n.retry),
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size(120, 48),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                FilledButton.icon(
-                  onPressed: _stopPreview,
-                  icon: const Icon(Icons.stop),
-                  label: Text(l10n.stopPreview),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    minimumSize: const Size(120, 48),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                FilledButton.icon(
-                  onPressed: _isCapturing ? null : _capturePhoto,
-                  icon: _isCapturing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.camera_alt),
-                  label: Text(_isCapturing ? '拍摄中...' : '拍照'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    minimumSize: const Size(120, 48),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                FilledButton.icon(
-                  onPressed: () => _startPreview(_selectedDeviceIndex!),
-                  icon: const Icon(Icons.refresh),
-                  label: Text(l10n.restart),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(120, 48),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return Container(
+      width: 320,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border:
+            Border(left: BorderSide(color: theme.colorScheme.outlineVariant)),
       ),
-    );
-  }
-
-  Widget _buildSettingsPanel(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Padding(
-      padding: const EdgeInsets.all(16),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.cameraSettings,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => setState(() => _isSettingsOpen = false),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (_selectedDeviceStatus != null) ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.deviceStatus,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          _selectedDeviceStatus!['isConnected']
-                              ? Icons.check_circle
-                              : Icons.error,
-                          size: 16,
-                          color: _selectedDeviceStatus!['isConnected']
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _selectedDeviceStatus!['isConnected']
-                              ? l10n.deviceConnected
-                              : l10n.deviceDisconnected,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          _selectedDeviceStatus!['isAvailable']
-                              ? Icons.check_circle
-                              : Icons.error,
-                          size: 16,
-                          color: _selectedDeviceStatus!['isAvailable']
-                              ? Colors.green
-                              : Colors.orange,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _selectedDeviceStatus!['isAvailable']
-                              ? l10n.deviceAvailable
-                              : l10n.deviceNotAvailable,
-                        ),
-                      ],
-                    ),
-                    if (_selectedDeviceStatus!['error'] != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.errorMessage,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                      Text(
-                        _selectedDeviceStatus!['error']!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+          // App Title Area
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Text(
+              l10n.appTitle,
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-          ],
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Resolution selector
-                  Text(
-                    'Resolution',
-                    style: Theme.of(context).textTheme.titleMedium,
+          ),
+
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                // Device Selection
+                Text(l10n.selectDevice,
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(color: theme.colorScheme.primary)),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: theme.colorScheme.surfaceContainer,
+                  child: Column(
+                    children: devicesList.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final name = entry.value;
+                      final isSelected = index == _selectedDeviceIndex;
+
+                      return RadioListTile<int>(
+                        value: index,
+                        groupValue: _selectedDeviceIndex,
+                        onChanged: (val) => _startPreview(val!),
+                        title: Text(name,
+                            style: theme.textTheme.bodyMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                        selected: isSelected,
+                        activeColor: theme.colorScheme.primary,
+                        secondary: isSelected && _selectedDeviceStatus != null
+                            ? Icon(
+                                _selectedDeviceStatus!['isConnected']
+                                    ? Icons.check_circle
+                                    : Icons.error,
+                                color: _selectedDeviceStatus!['isConnected']
+                                    ? Colors.green
+                                    : Colors.red,
+                                size: 16,
+                              )
+                            : null,
+                      );
+                    }).toList(),
                   ),
+                ),
+                const SizedBox(height: 24),
+
+                // Camera Settings (Resolution, Controls)
+                if (_selectedDeviceIndex != null) ...[
+                  Text(l10n.cameraSettings,
+                      style: theme.textTheme.titleSmall
+                          ?.copyWith(color: theme.colorScheme.primary)),
                   const SizedBox(height: 8),
+
+                  // Resolution Dropdown
                   DropdownButtonFormField<CameraResolution>(
                     value: _selectedResolution,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: InputDecoration(
+                      labelText: 'Resolution', // TODO: Add to l10n
+                      border: const OutlineInputBorder(),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainer,
                     ),
-                    hint: const Text('Select resolution'),
                     isExpanded: true,
                     items: _supportedResolutions.map((res) {
-                      return DropdownMenuItem<CameraResolution>(
+                      return DropdownMenuItem(
                         value: res,
                         child: Text(res.displayName),
                       );
                     }).toList(),
-                    onChanged: _selectedDeviceStatus != null &&
-                            _selectedDeviceStatus!['isConnected'] &&
-                            _selectedDeviceStatus!['isAvailable']
-                        ? (CameraResolution? newValue) async {
-                            if (newValue != null &&
-                                newValue != _selectedResolution) {
-                              setState(() => _selectedResolution = newValue);
-                              await _camera.setResolution(newValue);
-                              // Restart preview with new resolution
-                              if (_selectedDeviceIndex != null) {
-                                await _stopPreview();
-                                await _startPreview(_selectedDeviceIndex!);
-                              }
-                            }
-                          }
-                        : null,
+                    onChanged: (CameraResolution? newValue) async {
+                      if (newValue != null && newValue != _selectedResolution) {
+                        setState(() => _selectedResolution = newValue);
+                        await _camera.setResolution(newValue);
+                        if (_selectedDeviceIndex != null) {
+                          await _stopPreview();
+                          await _startPreview(_selectedDeviceIndex!);
+                        }
+                      }
+                    },
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    l10n.brightness,
-                    style: Theme.of(context).textTheme.titleMedium,
+
+                  // Image Controls
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.brightness_6, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Slider(
+                          value: _brightness,
+                          label: l10n.brightness,
+                          onChanged: (val) {
+                            setState(() => _brightness = val);
+                            _camera.setBrightness(val);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  Slider(
-                    value: _brightness,
-                    onChanged: _selectedDeviceStatus != null &&
-                            _selectedDeviceStatus!['isConnected'] &&
-                            _selectedDeviceStatus!['isAvailable']
-                        ? (value) {
-                            setState(() => _brightness = value);
-                            _camera.setBrightness(value);
-                          }
-                        : null,
-                  ),
-                  Text(
-                    l10n.contrast,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  Slider(
-                    value: _contrast,
-                    onChanged: _selectedDeviceStatus != null &&
-                            _selectedDeviceStatus!['isConnected'] &&
-                            _selectedDeviceStatus!['isAvailable']
-                        ? (value) {
-                            setState(() => _contrast = value);
-                            _camera.setContrast(value);
-                          }
-                        : null,
+                  Row(
+                    children: [
+                      const Icon(Icons.contrast, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Slider(
+                          value: _contrast,
+                          label: l10n.contrast,
+                          onChanged: (val) {
+                            setState(() => _contrast = val);
+                            _camera.setContrast(val);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
+              ],
+            ),
+          ),
+
+          // Bottom Controls Area
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLow,
+              border: Border(
+                  top: BorderSide(color: theme.colorScheme.outlineVariant)),
+            ),
+            child: Column(
+              children: [
+                if (_selectedDeviceIndex != null)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Capture Button
+                      FloatingActionButton.large(
+                        onPressed: _isCapturing ? null : _capturePhoto,
+                        heroTag: 'capture',
+                        tooltip: 'Capture Photo',
+                        child: _isCapturing
+                            ? const CircularProgressIndicator()
+                            : const Icon(Icons.camera, size: 36),
+                      ),
+
+                      // Stop/Start Button
+                      IconButton.filledTonal(
+                        onPressed: _stopPreview,
+                        icon: const Icon(Icons.stop),
+                        tooltip: l10n.stopPreview,
+                        iconSize: 28,
+                      ),
+                    ],
+                  ),
+              ],
             ),
           ),
         ],
